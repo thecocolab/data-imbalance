@@ -6,7 +6,6 @@ The `Pipeline` class is the central piece of code for running experiments. It wo
 
 The general workflow of using the `Pipeline` class looks as follows:
 ```python
-import numpy as np
 from pipeline import Pipeline
 
 # load or generate dataset
@@ -21,7 +20,7 @@ pl = Pipeline(x, y, groups,
 pl.evaluate()
 
 # visualize classification scores
-visualize_results(pl.scores)
+visualize_results(pl)
 ```
 Note that `x` and `y` are the only required arguments to instantiate a `Pipeline`. In the following list, all currently implemented configuration options of the `Pipeline` are explained.
 
