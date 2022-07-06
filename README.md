@@ -1,4 +1,4 @@
-# data-imbalance
+# Exploring the robustness of classification metrics on imbalanced datasets
 `pipeline.py` contains a generalizable pipeline for comparing classification metrics for different combinations of classifiers, sample size and class balance. It will be extended with helper-functions to access and visualize the results in the future.
 
 ## Usage
@@ -22,8 +22,9 @@ pl.evaluate()
 # visualize classification scores
 visualize_results(pl)
 ```
-Note that `x` and `y` are the only required arguments to instantiate a `Pipeline`. In the following list, all currently implemented configuration options of the `Pipeline` are explained.
+Note that `x` and `y` are the only required arguments to instantiate a `Pipeline`.
 
+## The `Pipeline` API
 - **`x` (required):** The dataset used for training and evaluating the classifiers. It can be a 1D array for single-feature classification or a 2D matrix with size `num-samples x num-features`. The array should contain floats suitable for classification, meaning that any kind of preprocessing or normalization should be applied before passing it to the pipeline.
 - **`y` (required):** The classification labels corresponding to the samples given by `x`. This should be a one-dimensional integer-array where each unique integer represents a different class. Currently, only binary classification is implemented so `y` should be made up of exactly two unique integers (e.g. 0 and 1).
 - **`groups` (optional, default=`None`):** An array with the same shape as `y`, containing group labels for each sample where each group corresponds to a unique integer (e.g. one group per subject). This will be used by the cross-validation strategy to avoid bias due to group effects. If left as `None`, the cross-validation will not take groups into account.
