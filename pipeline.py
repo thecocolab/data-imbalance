@@ -142,7 +142,7 @@ class Pipeline:
         # initialize results as None
         self.scores = None
 
-    def fit(self):
+    def evaluate(self):
         """Fits all classifiers on different configurations of data and
         evaluates their performance using the specified list of metrics.
 
@@ -327,5 +327,5 @@ if __name__ == "__main__":
 
     # initialize the pipeline
     p = Pipeline(x, y, groups)
-    # fit the classifiers with different configurations
-    p.fit()
+    # fit and evaluate the classifiers with different configurations
+    p.evaluate()
