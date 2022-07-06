@@ -55,3 +55,16 @@ pl.scores = {
     0.5: ...
 }
 ```
+
+## TODO
+- implement helper-functions for easier access to results
+    - e.g. something that allows `get_scores(balance="all", size=1.0, classifier="svm", metric="acc")`, which should return a NumPy array with only the selected results
+    - accessing subsets of the `scores` dictionary
+- a visualization framework which uses the `Pipeline` class
+    - line-graph with data balance on the x-axis and different metrics on the y-axis
+    - same as above but comparing different classifiers
+    - 3D surface plot showing different metrics on the data-balance x data-size plane
+- implement a dataset factory for synthetic data
+    - random gaussians with binary classification labels
+    - variable distance between the means of the two distributions (in other words how much the two classes overlap)
+    - single- or multi-feature dataset (potentially correlated features?)
