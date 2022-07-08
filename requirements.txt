@@ -1,3 +1,5 @@
 scikit-learn
 matplotlib
 tqdm
+numpy
+pytest
