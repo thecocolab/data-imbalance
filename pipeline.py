@@ -8,6 +8,7 @@ from sklearn.metrics import roc_auc_score, f1_score
 from sklearn.linear_model import LogisticRegression
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier
 
 
 class Pipeline:
@@ -35,9 +36,10 @@ class Pipeline:
 
     METRICS: List[str] = ["acc", "auc", "f1"]
     CLASSIFIERS: Dict[str, BaseEstimator] = {
-        "logistic-regression": LogisticRegression,
+        "lr": LogisticRegression,
         "svm": SVC,
         "lda": LinearDiscriminantAnalysis,
+        "rf": RandomForestClassifier,
     }
 
     def __init__(
@@ -45,7 +47,7 @@ class Pipeline:
         x: Sequence[float],
         y: Sequence[int],
         groups: Optional[Sequence[int]] = None,
-        classifiers: Union[str, BaseEstimator, List[Any]] = "logistic-regression",
+        classifiers: Union[str, BaseEstimator, List[Any]] = "lr",
         metrics: List[str] = ["acc", "auc"],
         cross_validation: BaseCrossValidator = None,
         dataset_balance: Sequence[float] = [0.1, 0.3, 0.5, 0.7, 0.9],
