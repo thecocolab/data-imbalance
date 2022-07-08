@@ -1,5 +1,4 @@
-scikit-learn
-matplotlib
-tqdm
-numpy
-pytest
+scikit-learn==1.1.1
+matplotlib==3.5.2
+tqdm==4.64.0
+pytest==7.1.2
