@@ -1,6 +1,6 @@
 import warnings
 from tqdm import tqdm
-from typing import Sequence, List, Union, Optional, Dict, Any
+from typing import Sequence, List, Tuple, Union, Optional, Dict, Any
 import numpy as np
 from sklearn.base import clone, BaseEstimator
 from sklearn.model_selection import BaseCrossValidator, KFold, GroupKFold
@@ -189,35 +189,16 @@ class Pipeline:
         for dset_balance in self.dataset_balance:
             results[dset_balance] = {}
 
-            # make sure we start with a balanced dataset
-            unique_y, class_counts = np.unique(self.y, return_counts=True)
-            assert (class_counts == class_counts[0]).all(), (
-                f"classes have different numbers of "
-                f"samples (counts: {list(class_counts)})"
-            )
-
             # adjust class balance by dropping as few samples as possible
-            alpha = dset_balance / (1 - dset_balance)
-            n_first_class = int(alpha * class_counts[0])
-            indices = np.concatenate(
-                [np.where(self.y == 0)[0][:n_first_class], np.where(self.y == 1)[0]]
+            unbalanced_x, unbalanced_y, unbalanced_groups = Pipeline.unbalance_data(
+                dset_balance, self.x, self.y, self.groups
             )
-            curr_x = self.x[indices]
-            curr_y = self.y[indices]
-            curr_groups = None if self.groups is None else self.groups[indices]
 
             for dset_size in self.dataset_size:
                 # limit the size of the dataset while maintaining class distribution
-                indices = np.concatenate(
-                    [
-                        np.where(curr_y == c)[0][: int(count * dset_size)]
-                        for c, count in zip(*np.unique(curr_y, return_counts=True))
-                    ]
+                curr_x, curr_y, curr_groups = Pipeline.limit_dataset_size(
+                    dset_size, unbalanced_x, unbalanced_y, unbalanced_groups
                 )
-
-                curr_x = curr_x[indices]
-                curr_y = curr_y[indices]
-                curr_groups = None if curr_groups is None else curr_groups[indices]
 
                 # make sure none of the classes have 0 samples
                 assert (np.unique(curr_y, return_counts=True)[1] > 0).all(), (
@@ -227,10 +208,9 @@ class Pipeline:
                 )
 
                 # shuffle the dataset randomly
-                permutation = np.random.permutation(len(curr_x))
-                curr_x = curr_x[permutation]
-                curr_y = curr_y[permutation]
-                curr_groups = None if curr_groups is None else curr_groups[permutation]
+                curr_x, curr_y, curr_groups = Pipeline.shuffle(
+                    curr_x, curr_y, curr_groups
+                )
 
                 # create a cross-validation split
                 cv_splits = self.cross_validation.split(curr_x, curr_y, curr_groups)
@@ -304,6 +284,85 @@ class Pipeline:
                 result[metric] = f1_score(y, clf.predict(x))
         return result
 
+    def unbalance_data(
+        ratio: float, x: np.ndarray, y: np.ndarray, groups: np.ndarray = None
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Artificially unbalances a given dataset according to a balance ratio
+
+        Args:
+            ratio (float): balance ratio where 0 corresponds to 100% of class 0, 0.5 is balanced and 1 is
+                           100% of class 1 (0 < ratio < 1)
+            x (array-like): data
+            y (array-like): labels
+            groups (array-like): group labels
+
+        Returns:
+            (x, y, groups): rebalanced data, labels and group labels
+        """
+        # make sure we start with a balanced dataset
+        unique_y, class_counts = np.unique(y, return_counts=True)
+        assert (class_counts == class_counts[0]).all(), (
+            f"classes have different numbers of "
+            f"samples (counts: {list(class_counts)})"
+        )
+
+        # compute expected class sizes according to ratio
+        n0 = class_counts[1] / ratio - class_counts[1]
+        n1 = class_counts[1]
+
+        # make sure the expected class sizes are realizable with the provided data
+        alpha = min(class_counts[0] / n0, class_counts[1] / n1)
+        n0 = int(n0 * alpha)
+        n1 = int(class_counts[1] * alpha)
+
+        # rebalance data
+        idxs = np.concatenate([np.where(y == 0)[0][:n0], np.where(y == 1)[0][:n1]])
+        return x[idxs], y[idxs], None if groups is None else groups[idxs]
+
+    def limit_dataset_size(
+        ratio: float, x: np.ndarray, y: np.ndarray, groups: np.ndarray = None
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Limits the size of a given dataset according to a given ratio.
+
+        Args:
+            ratio (float): the ratio of data to keep (0 < ratio <= 1)
+            x (array-like): data
+            y (array-like): labels
+            groups (array-like): group labels
+
+        Returns:
+            (x, y, groups): reduced data, labels and group labels
+        """
+        indices = np.concatenate(
+            [
+                np.where(y == c)[0][: int(count * ratio)]
+                for c, count in zip(*np.unique(y, return_counts=True))
+            ]
+        )
+        return x[indices], y[indices], None if groups is None else groups[indices]
+
+    def shuffle(
+        x: np.ndarray, y: np.ndarray, groups: np.ndarray = None
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Shuffles data, labels and groups labels randomly.
+
+        The arrays are shuffled along the first axis.
+
+        Args:
+            x (array-like): data
+            y (array-like): labels
+            groups (array-like): group labels
+
+        Returns:
+            (x, y, groups): shuffled data, labels and group labels
+        """
+        permutation = np.random.permutation(len(x))
+        return (
+            x[permutation],
+            y[permutation],
+            None if groups is None else groups[permutation],
+        )
+
     def get_classifier(name: str) -> BaseEstimator:
         """Instantiates a new classifier based on its name.
 
@@ -321,6 +380,8 @@ class Pipeline:
 
 
 if __name__ == "__main__":
+    from pprint import pprint
+
     # generate random data
     n = 10000
     x = np.random.normal(size=(n, 3))
@@ -328,6 +389,8 @@ if __name__ == "__main__":
     groups = np.arange(n // 5, dtype=int).repeat(5)
 
     # initialize the pipeline
-    p = Pipeline(x, y, groups)
+    pl = Pipeline(x, y, groups)
     # fit and evaluate the classifiers with different configurations
-    p.evaluate()
+    pl.evaluate()
+
+    pprint(pl.scores)
