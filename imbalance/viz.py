@@ -7,13 +7,16 @@ from imbalance.pipeline import Pipeline
 LINESTYLES = ["solid", "dashed", "dotted", "dashdot"]
 
 
-def metric_balance(pl: Pipeline, ax: plt.Axes = None, show: bool = True):
+def metric_balance(
+    pl: Pipeline, p_threshold: float = 0.05, ax: plt.Axes = None, show: bool = True
+):
     """Visualizes classification scores of different metrics and classifiers across a range
     of imbalance ratios. If you want to add something to the plot, set show to False and
     use plt.xyz after calling this function.
 
     Args:
         pl (Pipeline): a pipeline object, which has been evaluated
+        p_threshold (float): threshold of statistical significance
         ax (Axes): if provided, plot in ax instead of creating a new figure
         show (bool): whether the function calls plt.show() or not
     """
@@ -31,9 +34,9 @@ def metric_balance(pl: Pipeline, ax: plt.Axes = None, show: bool = True):
     for idx_clf, clf in enumerate(scores[list(scores.keys())[0]].keys()):
         for idx_met, met in enumerate(scores[list(scores.keys())[0]][clf].keys()):
             # get the current scores and p-values as lists
-            balances = list(scores.keys())
-            curr_scores = [scores[bal][clf][met] for bal in balances]
-            curr_pvals = [pvalues[bal][clf][met] for bal in balances]
+            balances = np.array(list(scores.keys()))
+            curr_scores = np.array([scores[bal][clf][met] for bal in balances])
+            curr_pvals = np.array([pvalues[bal][clf][met] for bal in balances])
 
             # plot the scores for the current classifier and metric
             line = ax.plot(
@@ -42,6 +45,19 @@ def metric_balance(pl: Pipeline, ax: plt.Axes = None, show: bool = True):
                 linestyle=LINESTYLES[idx_clf],
                 color=f"C{idx_met}",
             )[0]
+
+            # visualize statistical significance
+            try:
+                mask = curr_pvals < p_threshold
+                ax.scatter(
+                    balances[mask],
+                    curr_scores[mask],
+                    marker="*",
+                    s=70,
+                    color=f"C{idx_met}",
+                )
+            except TypeError:
+                pass
 
             # add current metric to the legend
             if met not in metric_legend:
@@ -52,7 +68,7 @@ def metric_balance(pl: Pipeline, ax: plt.Axes = None, show: bool = True):
                 l.set_color("black")
                 classifier_legend[clf] = l
 
-    # add annotation
+    # add annotations
     ax.set_xlabel("data balance")
     ax.set_ylabel("score")
 
