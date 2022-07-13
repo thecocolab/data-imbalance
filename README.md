@@ -26,6 +26,7 @@ The `Pipeline` class is the central piece of code for running experiments. It wo
 The general workflow of using the `Pipeline` class looks as follows:
 ```python
 from imbalance.pipeline import Pipeline
+from imbalance import viz
 
 # load or generate dataset
 x, y, groups = get_dataset(...)
@@ -39,7 +40,7 @@ pl = Pipeline(x, y, groups,
 pl.evaluate()
 
 # visualize classification scores
-visualize_results(pl)
+viz.metric_balance(pl)
 ```
 Note that `x` and `y` are the only required arguments to instantiate a `Pipeline`.
 
