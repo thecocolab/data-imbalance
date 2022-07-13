@@ -361,10 +361,12 @@ if __name__ == "__main__":
     from pprint import pprint
 
     # generate random data
-    n = 10000
-    x = np.random.normal(size=(n, 3))
-    y = np.concatenate((np.zeros(n // 2), np.ones(n // 2))).astype(int)
-    groups = np.arange(n // 5, dtype=int).repeat(5)
+    n = 1000
+    x = np.concatenate(
+        [np.random.normal(0, size=n // 2), np.random.normal(2, size=n // 2)]
+    ).reshape(-1, 1)
+    y = np.concatenate([np.zeros(n // 2), np.ones(n // 2)]).astype(int)
+    groups = np.concatenate([np.arange(n // 2), np.arange(n // 2)]).astype(int)
 
     # initialize the pipeline
     pl = Pipeline(x, y, groups)
