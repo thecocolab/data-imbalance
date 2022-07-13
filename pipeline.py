@@ -3,8 +3,13 @@ from tqdm import tqdm
 from typing import Sequence, List, Tuple, Union, Optional, Dict, Any
 import numpy as np
 from sklearn.base import clone, BaseEstimator
-from sklearn.model_selection import BaseCrossValidator, KFold, GroupKFold
-from sklearn.metrics import roc_auc_score, f1_score
+from sklearn.model_selection import (
+    BaseCrossValidator,
+    KFold,
+    GroupKFold,
+    permutation_test_score,
+)
+from sklearn.metrics import SCORERS
 from sklearn.linear_model import LogisticRegression
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.svm import SVC
@@ -24,7 +29,7 @@ class Pipeline:
         classifiers (str, list): a list of strings or scikit-learn classifier instances
                                  (see Pipeline.CLASSIFIERS.keys())
         metrics (list): a list of strings with metrics that should be compared (see
-                        Pipeline.METRICS)
+                        sklearn.metrics.SCORERS.keys())
         cross_validation (CrossValidator): an instantiated scikit-learn cross validation
                                            strategy (if None, uses (Group)KFold with n=5)
         dataset_balance (array-like): sequence of balance ratios where 0 corresponds to
@@ -32,9 +37,10 @@ class Pipeline:
                                       class 1
         dataset_size (str, array-like): "full" or sequence of ratios to evaluate different
                                         dataset sizes
+        n_permutations (int): number of permutations to run for evaluating statistical significance
+                              (set to 0 to disable permutation tests)
     """
 
-    METRICS: List[str] = ["acc", "auc", "f1"]
     CLASSIFIERS: Dict[str, BaseEstimator] = {
         "lr": LogisticRegression,
         "svm": SVC,
@@ -48,10 +54,11 @@ class Pipeline:
         y: Sequence[int],
         groups: Optional[Sequence[int]] = None,
         classifiers: Union[str, BaseEstimator, List[Any]] = "lr",
-        metrics: List[str] = ["acc", "auc"],
+        metrics: List[str] = ["accuracy", "roc_auc"],
         cross_validation: BaseCrossValidator = None,
         dataset_balance: Sequence[float] = [0.1, 0.3, 0.5, 0.7, 0.9],
         dataset_size: Union[str, Sequence[float]] = "full",
+        n_permutations: int = 0,
     ):
         # check x and y parameters
         x, y = np.asarray(x), np.asarray(y)
@@ -112,14 +119,6 @@ class Pipeline:
                 # clone the classifier object
                 self.classifiers.append(clone(clf))
 
-        # check metrics parameter
-        for metric in metrics:
-            assert metric in Pipeline.METRICS, (
-                f"unknown metric {metric}, choose from "
-                f"{', '.join(Pipeline.METRICS)}"
-            )
-        self.metrics = metrics
-
         # initialize cross-validation
         if cross_validation is None and self.groups is None:
             cross_validation = KFold(n_splits=5)
@@ -141,12 +140,18 @@ class Pipeline:
             ), f"expected dataset size to be > 0 and <= 1, got {size}"
         self.dataset_size = dataset_size
 
+        # other parameters
+        self.n_permutations = n_permutations
+        self.metrics = metrics
+
         # initialize results as None
         self.scores = None
 
     def evaluate(self):
         """Fits all classifiers on different configurations of data and
         evaluates their performance using the specified list of metrics.
+
+        If n_permutations is greated than zero, runs permutation tests to assess statistical significance.
 
         The dataset is shuffled randomly after adjusting class balance and dataset size.
 
@@ -163,8 +168,8 @@ class Pipeline:
                     # classifier name
                     clf1: {
                         # metric name
-                        metric1: score-metric1,
-                        metric2: score-metric2,
+                        metric1: (score-metric1, p-value-metric1),
+                        metric2: (score-metric2, p-value-metric2),
                         ...
                     },
                     clf2: ...
@@ -177,8 +182,8 @@ class Pipeline:
         num_loops = (
             len(self.dataset_balance)
             * len(self.dataset_size)
-            * self.cross_validation.get_n_splits(self.x, self.y, self.groups)
             * len(self.classifiers)
+            * len(self.metrics)
         )
         pbar = tqdm(desc="fitting classifiers", total=num_loops)
 
@@ -195,6 +200,8 @@ class Pipeline:
             )
 
             for dset_size in self.dataset_size:
+                results[dset_balance][dset_size] = {}
+
                 # limit the size of the dataset while maintaining class distribution
                 curr_x, curr_y, curr_groups = Pipeline.limit_dataset_size(
                     dset_size, unbalanced_x, unbalanced_y, unbalanced_groups
@@ -212,77 +219,48 @@ class Pipeline:
                     curr_x, curr_y, curr_groups
                 )
 
-                # create a cross-validation split
-                cv_splits = self.cross_validation.split(curr_x, curr_y, curr_groups)
+                for clf in self.classifiers:
+                    clf_name = type(clf).__name__
+                    results[dset_balance][dset_size][clf_name] = {}
 
-                cv_results = {}
-                for idx_train, idx_test in cv_splits:
-                    # split dataset according to cross-validation split
-                    x_train, y_train = curr_x[idx_train], curr_y[idx_train]
-                    x_test, y_test = curr_x[idx_test], curr_y[idx_test]
-
-                    for clf in self.classifiers:
-                        clf_name = type(clf).__name__
-                        if clf_name not in cv_results:
-                            cv_results[clf_name] = {}
-
+                    for metric in self.metrics:
                         # add current configuration to progress bar
                         pbar.set_postfix(
                             dict(
                                 size=dset_size,
                                 balance=dset_balance,
                                 classifier=clf_name,
+                                metric=metric,
                             )
                         )
 
-                        # make sure we get a new and untrained classifier
-                        clf = clone(clf)
-                        # train the current classifier
-                        clf.fit(x_train, y_train)
-                        # evaluate the classifier using all specified metrics
-                        scores = self.evaluate_classifier(clf, x_test, y_test)
+                        # run a permutation test for the current combination of
+                        # imbalance, sample size, classifier and metric
+                        score, _, pvalue = permutation_test_score(
+                            clone(clf),
+                            curr_x,
+                            curr_y,
+                            groups=curr_groups,
+                            scoring=metric,
+                            cv=self.cross_validation,
+                            n_permutations=self.n_permutations,
+                            n_jobs=-1,
+                        )
 
-                        # append scores to a list to accumulate results
-                        # from individual cross-validation splits
-                        for metric, val in scores.items():
-                            if metric not in cv_results[clf_name]:
-                                cv_results[clf_name][metric] = []
-                            cv_results[clf_name][metric].append(val)
+                        # we don't have a p-value if the number of permutations is zero
+                        if self.n_permutations == 0:
+                            pvalue = None
+
+                        # store current results
+                        results[dset_balance][dset_size][clf_name][metric] = (
+                            score,
+                            pvalue,
+                        )
 
                         # update the progress bar
                         pbar.update()
-
-                # aggregate results over cross-validation splits
-                for clf_name in cv_results.keys():
-                    for metric in cv_results[clf_name].keys():
-                        avg_score = np.mean(cv_results[clf_name][metric])
-                        cv_results[clf_name][metric] = avg_score
-                # store the aggregated scores in the results dict
-                results[dset_balance][dset_size] = cv_results
+        pbar.close()
         self.scores = results
-
-    def evaluate_classifier(
-        self, clf: BaseEstimator, x: np.ndarray, y: np.ndarray
-    ) -> Dict[str, float]:
-        """Evaluates different metrics on a fitted classifier.
-
-        Args:
-            clf (Estimator): a fitted scikit-learn classifier
-            x (array): the testing data with shape (num-samples x num-variables)
-            y (array): the testing labels with shape (num-samples,)
-
-        Returns:
-            result (dict): a dictionary with metric names as keys and scores as values
-        """
-        result = {}
-        for metric in self.metrics:
-            if metric == "acc":
-                result[metric] = clf.score(x, y)
-            elif metric == "auc":
-                result[metric] = roc_auc_score(y, clf.decision_function(x))
-            elif metric == "f1":
-                result[metric] = f1_score(y, clf.predict(x))
-        return result
 
     def unbalance_data(
         ratio: float, x: np.ndarray, y: np.ndarray, groups: np.ndarray = None
@@ -383,14 +361,16 @@ if __name__ == "__main__":
     from pprint import pprint
 
     # generate random data
-    n = 10000
-    x = np.random.normal(size=(n, 3))
-    y = np.concatenate((np.zeros(n // 2), np.ones(n // 2))).astype(int)
-    groups = np.arange(n // 5, dtype=int).repeat(5)
+    n = 1000
+    x = np.concatenate(
+        [np.random.normal(0, size=n // 2), np.random.normal(2, size=n // 2)]
+    ).reshape(-1, 1)
+    y = np.concatenate([np.zeros(n // 2), np.ones(n // 2)]).astype(int)
+    groups = np.concatenate([np.arange(n // 2), np.arange(n // 2)]).astype(int)
 
     # initialize the pipeline
     pl = Pipeline(x, y, groups)
     # fit and evaluate the classifiers with different configurations
     pl.evaluate()
-
+    # print classification results
     pprint(pl.scores)
