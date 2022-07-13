@@ -1,18 +1,23 @@
 # Exploring the robustness of classification metrics on imbalanced datasets
 `pipeline.py` contains a generalizable pipeline for comparing classification metrics for different combinations of classifiers, sample size and class balance. It will be extended with helper-functions to access and visualize the results in the future.
 
-# Installation
-
+## Installation
+First, create and activate a new Python environment:
 ```bash
-cd repodir
-pip install .
+conda create -n imbalance python==3.8 -y
+conda activate imbalance
+```
+Afterwards, clone the repository and install its dependencies as follows:
+```bash
+git clone git@github.com:thecocolab/data-imbalance.git
+cd data-imbalance
+pip install -e .
 ```
 
-If you want to have the most up to date changes whenever you pull you may want to install in editable mode:
-
+### Reduced Installation
+The `-e` flag allows you to make changes to the repository without the need to reinstall. If you are only planning to use the package and don't want to make changes you can skip cloning and install via
 ```bash
-cd repodir
-pip install -e .
+pip install git+https://github.com/thecocolab/data-imbalance.git
 ```
 
 ## Usage
