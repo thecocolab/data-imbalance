@@ -372,5 +372,5 @@ if __name__ == "__main__":
     pl = Pipeline(x, y, groups)
     # fit and evaluate the classifiers with different configurations
     pl.evaluate()
-
+    # print classification results
     pprint(pl.scores)
