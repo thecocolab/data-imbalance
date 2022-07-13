@@ -34,7 +34,7 @@ x, y, groups = get_dataset(...)
 # initialize pipeline
 pl = Pipeline(x, y, groups,
               classifiers=["lda", "svm"],
-              metrics=["acc", "auc", "f1"],
+              metrics=["accuracy", "roc_auc", "f1"],
               dataset_balance=[0.1, 0.3, 0.5, 0.7, 0.9])
 # fit and evaluate classifiers on dataset configurations
 pl.evaluate()
