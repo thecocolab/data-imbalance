@@ -15,14 +15,17 @@ def metric_balance(
 ):
     _check_pipeline(pl)
 
+    # extract relevant results from the pipeline
     scores = pl.get(dataset_size="max", result_type="score")
     pvalues = pl.get(dataset_size="max", result_type="pvalue")
 
+    # start the figure
     plt.figure()
 
     metric_legend, classifier_legend = {}, {}
     for idx_clf, clf in enumerate(scores[list(scores.keys())[0]].keys()):
         for idx_met, met in enumerate(scores[list(scores.keys())[0]][clf].keys()):
+            # get the current scores and p-values as lists
             balances = list(scores.keys())
             curr_scores = [scores[bal][clf][met] for bal in balances]
             curr_pvals = [pvalues[bal][clf][met] for bal in balances]
@@ -46,6 +49,7 @@ def metric_balance(
                 l.set_color("black")
                 classifier_legend[clf] = l
 
+    # add annotation
     plt.xlabel("data balance")
     plt.ylabel("score")
 
