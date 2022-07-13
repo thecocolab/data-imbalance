@@ -56,7 +56,7 @@ class Pipeline:
         classifiers: Union[str, BaseEstimator, List[Any]] = "lr",
         metrics: List[str] = ["accuracy", "roc_auc"],
         cross_validation: BaseCrossValidator = None,
-        dataset_balance: Sequence[float] = [0.5],  # [0.1, 0.3, 0.5, 0.7, 0.9],
+        dataset_balance: Sequence[float] = [0.1, 0.3, 0.5, 0.7, 0.9],
         dataset_size: Union[str, Sequence[float]] = "full",
         n_permutations: int = 0,
     ):
