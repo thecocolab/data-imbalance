@@ -1,12 +1,26 @@
 # Exploring the robustness of classification metrics on imbalanced datasets
 `pipeline.py` contains a generalizable pipeline for comparing classification metrics for different combinations of classifiers, sample size and class balance. It will be extended with helper-functions to access and visualize the results in the future.
 
+# Installation
+
+```bash
+cd repodir
+pip install .
+```
+
+If you want to have the most up to date changes whenever you pull you may want to install in editable mode:
+
+```bash
+cd repodir
+pip install -e .
+```
+
 ## Usage
 The `Pipeline` class is the central piece of code for running experiments. It works with on binary classification datasets using scikit-learn classifiers, automatically testing different dataset sizes, class distributions and evaluates classification performance using a range of metrics. By default, 5-fold cross-validation will be used to increase robustness of the results but it is possible to adjust the cross-validation strategy when configuring the pipeline.
 
 The general workflow of using the `Pipeline` class looks as follows:
 ```python
-from pipeline import Pipeline
+from imbalance.pipeline import Pipeline
 
 # load or generate dataset
 x, y, groups = get_dataset(...)
@@ -58,6 +72,7 @@ pl.scores = {
 ```
 
 ## TODO
+- Actually use the pipeline in the synthetic data exploration
 - implement helper-functions for easier access to results
     - e.g. something that allows `get_scores(balance="all", size=1.0, classifier="svm", metric="acc")`, which should return a NumPy array with only the selected results
     - accessing subsets of the `scores` dictionary

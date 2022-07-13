@@ -2,7 +2,7 @@ from copy import copy
 from typing import Union
 import numpy as np
 from matplotlib import pyplot as plt
-from pipeline import Pipeline
+from imbalance.pipeline import Pipeline
 
 LINESTYLES = ["solid", "dashed", "dotted", "dashdot"]
 
