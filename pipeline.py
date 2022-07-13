@@ -262,6 +262,119 @@ class Pipeline:
         pbar.close()
         self.scores = results
 
+    def get(
+        self,
+        balance: Union[str, float, list] = "all",
+        dataset_size: Union[str, float, list] = "all",
+        classifier: Union[str, list] = "all",
+        metric: Union[str, list] = "all",
+        result_type: str = "both",
+    ):
+        """Collects subsets of the results and returns them as dictionaries. If a specific value
+        or "max" is specified for a parameter, the corresponding dimension of the dictionary
+        will be removed. For example, if "balance" is set to 0.3 and "dataset_size" is "all",
+        the first dimension of the resulting dictionary will be dataset size.
+
+        Args:
+            balance (str, float, list): dataset balance ratio as a float, a list of ratios or
+                                        "all" for the full range of balances
+            dataset_size (str, float, list): dataset size as a float, a list of sizes, "all"
+                                             for all sizes or "max" for only the maximum size
+            classifier (str, list): name of the classifier to extract, a list of classifier
+                                    names or "all" to return results from all classifiers
+            metric (str, list): name or list of metric names to extract
+            result_type (str): can be "score", "pvalue" or "both" (if "both", returns a tuple
+                               of score and p-value)
+
+        Returns:
+            result: the dictionary with a subset of the results
+        """
+        if self.scores is None:
+            raise RuntimeError(
+                "The pipeline was not evaluated. Try running pipeline.evaluate()"
+            )
+
+        # parse balance parameter
+        keep_balance = True
+        if balance == "all":
+            balance = list(self.scores.keys())
+        elif isinstance(balance, float):
+            balance = [balance]
+            keep_balance = False
+
+        # parse dataset_size parameter
+        keep_dataset_size = True
+        if dataset_size == "all":
+            dataset_size = list(self.scores[balance[0]].keys())
+        elif dataset_size == "max":
+            dataset_size = [max(self.scores[balance[0]].keys())]
+            keep_dataset_size = False
+        elif isinstance(dataset_size, float):
+            dataset_size = [dataset_size]
+            keep_dataset_size = False
+
+        # parse classifier parameter
+        keep_classifier = True
+        if classifier == "all":
+            classifier = list(self.scores[balance[0]][dataset_size[0]].keys())
+        elif isinstance(classifier, str):
+            classifier = [classifier]
+            keep_classifier = False
+
+        # parse metric parameter
+        keep_metric = True
+        if metric == "all":
+            metric = list(
+                self.scores[balance[0]][dataset_size[0]][classifier[0]].keys()
+            )
+        elif isinstance(metric, str):
+            metric = [metric]
+            keep_metric = False
+
+        result = {}
+        # collect balances
+        for bal in self.scores.keys():
+            if bal not in balance:
+                continue
+
+            result[bal] = {}
+            # collect dataset sizes
+            for size in self.scores[bal].keys():
+                if size not in dataset_size:
+                    continue
+
+                result[bal][size] = {}
+                # collect classifiers
+                for clf in self.scores[bal][size].keys():
+                    if clf not in classifier:
+                        continue
+
+                    result[bal][size][clf] = {}
+                    # collect metrics
+                    for met in self.scores[bal][size][clf].keys():
+                        if met not in metric:
+                            continue
+
+                        # choose result type to keep
+                        if result_type == "both":
+                            result[bal][size][clf][met] = self.scores[bal][size][clf][
+                                met
+                            ]
+                        elif result_type == "score":
+                            result[bal][size][clf][met] = self.scores[bal][size][clf][
+                                met
+                            ][0]
+                        elif result_type == "pvalue":
+                            result[bal][size][clf][met] = self.scores[bal][size][clf][
+                                met
+                            ][1]
+
+        # remove empty dimensions from the dictionary but keep dimensions where "all" was specified
+        result = Pipeline._squeeze_dict(
+            result, keep=[keep_balance, keep_dataset_size, keep_classifier, keep_metric]
+        )
+        return result
+
     def unbalance_data(
         ratio: float, x: np.ndarray, y: np.ndarray, groups: np.ndarray = None
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -355,6 +468,32 @@ class Pipeline:
             f"{', '.join(Pipeline.CLASSIFIERS.keys())}"
         )
         return Pipeline.CLASSIFIERS[name]()
+
+    def _squeeze_dict(data: dict, keep=[]) -> dict:
+        """Recursively removes dimensions from a nested dictionary, which only have a single
+        entry.
+
+        Args:
+            data (dict): the dictionary to reduce
+            keep (list): list of bools, indicating if a certain dimension should be kept
+                         regardless of the number of entries
+
+        Returns:
+            result: the squeezed dictionary
+        """
+        if isinstance(data, dict):
+            if len(data) == 1:
+                if not (len(keep) == 0 or keep[0]):
+                    # remove this dimension as we only have one entry
+                    data = list(data.values())[0]
+                    return Pipeline._squeeze_dict(data, keep[1:])
+
+            # recursively squeeze all entries of the current dimension
+            for key in data.keys():
+                data[key] = Pipeline._squeeze_dict(data[key], keep[1:])
+            return data
+        # we reached the end of the nesting
+        return data
 
 
 if __name__ == "__main__":
