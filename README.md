@@ -20,7 +20,7 @@ The `Pipeline` class is the central piece of code for running experiments. It wo
 
 The general workflow of using the `Pipeline` class looks as follows:
 ```python
-from imbalanced_coconuts import Pipeline
+from imbalance.pipeline import Pipeline
 
 # load or generate dataset
 x, y, groups = get_dataset(...)
@@ -84,4 +84,3 @@ pl.scores = {
     - random gaussians with binary classification labels
     - variable distance between the means of the two distributions (in other words how much the two classes overlap)
     - single- or multi-feature dataset (potentially correlated features?)
-    - permutation stuff

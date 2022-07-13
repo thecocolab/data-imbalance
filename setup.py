@@ -1,20 +1,28 @@
 import setuptools
+import subprocess
 
-long_description = """Abstract of the paper."""
+try:
+    version = (
+        subprocess.check_output(["git", "describe", "--abbrev=0", "--tags"])
+        .strip()
+        .decode("utf-8")
+    )
+except:
+    print("Failed to retrieve the current version, defaulting to 0")
+    version = "0"
+
 REQUIREMENTS = [i.strip() for i in open("requirements.txt").readlines()]
+
 setuptools.setup(
-    name="imbalanced_coconuts",
-    version="0.0.1",
+    name="imbalance",
+    version=version,
     author="The CoCo Lab",
-    description="An exploration of data imbalance using cocos",
-    long_description=long_description,
-    long_description_content_type="text/markdown",
+    description="An exploration of data imbalance",
     packages=setuptools.find_packages(),
     install_requires = REQUIREMENTS,
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.7',
+    python_requires='==3.8',
 )
