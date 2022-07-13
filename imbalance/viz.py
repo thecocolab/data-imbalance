@@ -7,12 +7,16 @@ from imbalance.pipeline import Pipeline
 LINESTYLES = ["solid", "dashed", "dotted", "dashdot"]
 
 
-def metric_balance(
-    pl: Pipeline,
-    dataset_size: Union[float, str] = "max",
-    classifiers: str = "all",
-    show=True,
-):
+def metric_balance(pl: Pipeline, ax: plt.Axes = None, show: bool = True):
+    """Visualizes classification scores of different metrics and classifiers across a range
+    of imbalance ratios. If you want to add something to the plot, set show to False and
+    use plt.xyz after calling this function.
+
+    Args:
+        pl (Pipeline): a pipeline object, which has been evaluated
+        ax (Axes): if provided, plot in ax instead of creating a new figure
+        show (bool): whether the function calls plt.show() or not
+    """
     _check_pipeline(pl)
 
     # extract relevant results from the pipeline
@@ -20,7 +24,8 @@ def metric_balance(
     pvalues = pl.get(dataset_size="max", result_type="pvalue")
 
     # start the figure
-    plt.figure()
+    if ax is None:
+        fig, ax = plt.subplots()
 
     metric_legend, classifier_legend = {}, {}
     for idx_clf, clf in enumerate(scores[list(scores.keys())[0]].keys()):
@@ -31,14 +36,12 @@ def metric_balance(
             curr_pvals = [pvalues[bal][clf][met] for bal in balances]
 
             # plot the scores for the current classifier and metric
-            line = plt.plot(
+            line = ax.plot(
                 balances,
                 curr_scores,
                 linestyle=LINESTYLES[idx_clf],
                 color=f"C{idx_met}",
             )[0]
-
-            line.set_color
 
             # add current metric to the legend
             if met not in metric_legend:
@@ -50,10 +53,10 @@ def metric_balance(
                 classifier_legend[clf] = l
 
     # add annotation
-    plt.xlabel("data balance")
-    plt.ylabel("score")
+    ax.set_xlabel("data balance")
+    ax.set_ylabel("score")
 
-    plt.legend(
+    ax.legend(
         list(metric_legend.values()) + list(classifier_legend.values()),
         list(metric_legend.keys()) + list(classifier_legend.keys()),
         ncol=2,
