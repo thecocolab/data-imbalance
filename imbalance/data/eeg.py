@@ -19,7 +19,7 @@ def eegbci(
         datapath (str): path where the eeg data files will be downloaded
         epoch_duration (float,int): duration in seconds of the epochs
         band (tuple[float,float]): frequency range desired
-        scale (bool) : Whether to apply (True) a zero-mean unit-variance scaler or not (False) 
+        scale (bool) : Whether to apply (True) a zero-mean unit-variance scaler or not (False)
         roi (list[str],Callable) : List of channel names or a function that selects (returns True) based on the channel name.
 
     Returns:
@@ -37,8 +37,8 @@ def eegbci(
     task_list = (0,1) #('close','open')
     for sub in sub_list:
         filenames[sub] = {}
-        filenames[sub][task_list[0]]=mne.datasets.eegbci.load_data(sub, [2],path=datapath,update_path=False)[0] #2 Baseline, eyes closed
-        filenames[sub][task_list[1]]=mne.datasets.eegbci.load_data(sub, [1],path=datapath,update_path=False)[0] #1 Baseline, eyes open
+        filenames[sub][task_list[0]]=mne.datasets.eegbci.load_data(sub, [2],path=datapath,update_path=False, verbose=False)[0] #2 Baseline, eyes closed
+        filenames[sub][task_list[1]]=mne.datasets.eegbci.load_data(sub, [1],path=datapath,update_path=False, verbose=False)[0] #1 Baseline, eyes open
 
     X = [] # Data Vector
     Y = [] # Labels
@@ -47,17 +47,17 @@ def eegbci(
 
     for sub in sub_list:
         for task in task_list:
-            raw = mne.io.read_raw_edf(filenames[sub][task], preload=False)
+            raw = mne.io.read_raw_edf(filenames[sub][task], preload=False, verbose=False)
 
             # Segment into epochs
-            epochs = mne.make_fixed_length_epochs(raw, duration=epoch_duration, preload=True)
+            epochs = mne.make_fixed_length_epochs(raw, duration=epoch_duration, preload=True, verbose=False)
             chan_names.append(deepcopy(epochs.info["ch_names"]))
             # Calculate Spectrum
-            psds,freqs=mne.time_frequency.psd_array_multitaper(epochs.get_data(),epochs.info['sfreq'])
+            psds,freqs=mne.time_frequency.psd_array_multitaper(epochs.get_data(),epochs.info['sfreq'], verbose=False)
 
             # Slice Spectrum to the selected band
             band_idxs = np.where((freqs >= band[0]) & (freqs <= band[1]))[0]
-            
+
             # Obtain the average power inside the selected band
             power = np.mean(psds[:,:,band_idxs],axis=-1)
 
