@@ -59,6 +59,7 @@ class Pipeline:
         dataset_balance: Sequence[float] = [0.1, 0.3, 0.5, 0.7, 0.9],
         dataset_size: Union[str, Sequence[float]] = "full",
         n_permutations: int = 0,
+        rand_seed: int = 0,
     ):
         # check x and y parameters
         x, y = np.asarray(x), np.asarray(y)
@@ -141,6 +142,9 @@ class Pipeline:
         self.n_permutations = n_permutations
         self.metrics = metrics
 
+        # set random seed
+        self.seed = rand_seed
+
         # initialize results as None
         self.scores = None
 
@@ -186,6 +190,10 @@ class Pipeline:
 
         # initialize result dictionary
         results = {}
+
+        # initialize fixed seed
+        if self.seed is not None:
+            np.random.seed(self.seed)
 
         # nested loops over data configurations, classifiers and metrics
         for dset_balance in self.dataset_balance:
@@ -242,6 +250,7 @@ class Pipeline:
                             cv=self.cross_validation,
                             n_permutations=self.n_permutations,
                             n_jobs=-1,
+                            random_state=None,
                         )
 
                         # we don't have a p-value if the number of permutations is zero
