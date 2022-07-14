@@ -7,7 +7,7 @@ from collections.abc import Callable
 from copy import deepcopy
 
 def eegbci(
-    datapath : str,
+    datapath : str = 'data',
     epoch_duration : Union[float,int] = 5,
     band : Tuple[float,float]= (8.,12.),
     scale : bool=True,
@@ -107,3 +107,21 @@ def eegbci(
         scaler = StandardScaler()
         X = scaler.fit_transform(X)
     return X,Y,G
+
+def get_info(datapath = 'data'):
+    os.makedirs(datapath,exist_ok=True)
+    sub = 1
+    filepath = mne.datasets.eegbci.load_data(sub, [2],path=datapath,update_path=False)[0]
+    raw = mne.io.read_raw_edf(filepath, preload=False)
+    mapping = {x:x.replace('.',' ').rstrip().upper() for x in raw.ch_names}
+    mne.rename_channels(raw.info,mapping)
+    montage = mne.channels.make_standard_montage('standard_1005')
+    montage.rename_channels({x:x.upper() for x in montage.ch_names})
+    raw.set_montage(montage)
+    return raw.info.copy()
+
+if __name__ == '__main__':
+    info = get_info()
+    mne.viz.plot_sensors(info)
+
+
