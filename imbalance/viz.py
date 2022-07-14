@@ -1,7 +1,10 @@
+import warnings
 from copy import copy
-from typing import Union
+from typing import Union, Optional
 import numpy as np
 from matplotlib import pyplot as plt
+import seaborn as sns
+from sklearn.manifold import TSNE
 from imbalance.pipeline import Pipeline
 
 LINESTYLES = ["solid", "dashed", "dotted", "dashdot"]
@@ -81,6 +84,55 @@ def metric_balance(
         plt.show()
 
 
+def data_distribution(
+    x: np.ndarray, y: np.ndarray, ax: Optional[plt.Axes] = None, show: bool = True
+):
+    """Plots the data distribution of the input data. If x is single-feature, creates a density plot. If x is multi-feature, applies TSNE and creates a scatter plot of the two classes.
+
+    Args:
+        x (ndarray): 2D feature array with shape (n_samples x n_features). If n_features is 1, a density plot is created. Otherwise uses a scatter TSNE plot
+        y (ndarray): 1D integer class labels (array of zeros and ones)
+        ax (Axes): matplotlib Axes object in which the figures are created. If None, creates a new figure
+        show (bool): if True, call plt.show() after creating the figure
+    """
+    # start the figure
+    if ax is None:
+        fig, ax = plt.subplots()
+
+    if x.shape[1] > 1:
+        # plot single-feature density-plots for separate classes
+        _multi_feature_distribution(x, y, ax)
+    else:
+        # multi-feature TSNE plots
+        _single_feature_distribution(x, y, ax)
+
+    if show:
+        plt.show()
+
+
+def _single_feature_distribution(x: np.ndarray, y: np.ndarray, ax: plt.Axes):
+    # create density plots
+    sns.kdeplot(x[y == 0, 0], ax=ax, label="class 0")
+    sns.kdeplot(x[y == 1, 0], ax=ax, label="class 1")
+    # add annotations
+    ax.set_xlabel("variable")
+    ax.legend()
+
+
+def _multi_feature_distribution(x: np.ndarray, y: np.ndarray, ax: plt.Axes):
+    with warnings.catch_warnings():
+        # ignore a TSNE FutureWarning about PCA initialization
+        warnings.filterwarnings("ignore", category=FutureWarning)
+        x = TSNE(learning_rate="auto", init="pca").fit_transform(x)
+    # TSNE scatter plot
+    ax.scatter(*x[y == 0].T, label="class 0")
+    ax.scatter(*x[y == 1].T, label="class 1")
+    # add annotations
+    ax.set_xlabel("component 0")
+    ax.set_ylabel("component 1")
+    ax.legend()
+
+
 def _check_pipeline(pl: Pipeline):
     if pl.scores is None:
         raise RuntimeError(
@@ -93,7 +145,7 @@ if __name__ == "__main__":
     from imbalance.data import gaussian_binary
 
     # generate random data
-    x, y, groups = gaussian_binary(n_samples_per_class=1000)
+    x, y, groups = gaussian_binary()
 
     # run the pipeline
     pl = Pipeline(
