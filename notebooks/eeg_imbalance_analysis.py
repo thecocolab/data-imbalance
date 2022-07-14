@@ -23,7 +23,7 @@ if not os.path.isfile(pipeline_path):
         x,
         y,
         groups,
-        dataset_balance=np.linspace(0.037, 1-0.037, 100)[1:-1],
+        dataset_balance=np.linspace(0.1, 0.9, 25)[1:-1],
         classifiers=['rf',"lda","svm",LogisticRegression(max_iter=1000)],
         metrics=[ "roc_auc","accuracy", "f1", "balanced_accuracy"],
     )
