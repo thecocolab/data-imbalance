@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Tuple, Union
+from typing import Tuple, Optional
 
 
 def gaussian_binary(
@@ -8,7 +8,7 @@ def gaussian_binary(
     n_samples_per_class: int = 1000,
     n_features: int = 1,
     n_groups: int = 0,
-) -> Tuple[np.ndarray, np.ndarray, Union[np.ndarray, None]]:
+) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
     """Generates random gaussian distributions with two different means and corresponding class labels.
 
     Args:
