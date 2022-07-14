@@ -61,7 +61,7 @@ class Pipeline:
         dataset_balance: Sequence[float] = [0.1, 0.3, 0.5, 0.7, 0.9],
         dataset_size: Union[str, Sequence[float]] = "full",
         n_permutations: int = 0,
-        rand_seed: int = 0,
+        rand_seed: int = None,
         n_init: int = 1,
     ):
         # check x and y parameters
