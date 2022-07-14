@@ -22,8 +22,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[i.strip() for i in open("requirements.txt").readlines()],
-    dependency_links=[
-        'git+ssh://git@github.com/arthurdehgan/NeuroPy-MLToolbox.git#egg=mlneurotools',
-    ],
     python_requires='==3.8.*',
 )

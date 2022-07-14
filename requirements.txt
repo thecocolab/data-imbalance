@@ -6,3 +6,4 @@ mne==1.0.3
 jupyter==1.0.0
 pandas==1.4.3
 pooch==1.6.0
+mlneurotools @ git+https://github.com/arthurdehgan/NeuroPy-MLToolbox.git
