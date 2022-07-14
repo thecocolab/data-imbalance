@@ -190,7 +190,6 @@ class Pipeline:
             len(self.dataset_balance)
             * len(self.dataset_size)
             * len(self.classifiers)
-            * len(self.metrics)
             * self.n_init
         )
         pbar = tqdm(desc="fitting classifiers", total=num_loops)
