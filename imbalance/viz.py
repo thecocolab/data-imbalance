@@ -19,11 +19,12 @@ CLASSIFIERS = {
 METRIC = {
     "roc_auc": "AUC",
     "accuracy": "Accuracy",
+    "balanced_accuracy": "Balanced Accuracy",
     "f1": "F1 score",
 }
 
 def metric_balance(
-    pl: Pipeline, classifier: str ,p_threshold: float = 0.05, ax: plt.Axes = None, show: bool = True
+    pl: Pipeline, classifier: str ,p_threshold: float = 0.01, ax: plt.Axes = None, show: bool = True
 ):
     """Visualizes classification scores of different metrics and classifiers across a range
     of imbalance ratios. If you want to add something to the plot, set show to False and
@@ -83,8 +84,8 @@ def metric_balance(
         chance = ax.plot(
             balances,
             curr_perm_score,
-            linestyle="dashed",
-            color="darkgrey",
+            linestyle="dotted",
+            color=f"C{idx_met}",
         )[0]
 
         # visualize statistical significance
