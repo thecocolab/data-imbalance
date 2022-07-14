@@ -122,6 +122,8 @@ def get_info(datapath = 'data'):
 
 if __name__ == '__main__':
     info = get_info()
-    mne.viz.plot_sensors(info)
+    roi = [x for x in info['ch_names'] if x[0] in ['P','O']]
+    sphere=(0, 0, 0.01, 0.12)
+    mne.viz.plot_sensors(info,sphere=sphere,pointsize=25,linewidth=0,block=True,show_names=roi)
 
 
