@@ -84,20 +84,23 @@ def metric_balance(
         plt.show()
 
 
-def data_distribution(
-    x: np.ndarray, y: np.ndarray, ax: Optional[plt.Axes] = None, show: bool = True
-):
-    """Plots the data distribution of the input data. If x is single-feature, creates a density plot. If x is multi-feature, applies TSNE and creates a scatter plot of the two classes.
+def data_distribution(pl: Pipeline, ax: Optional[plt.Axes] = None, show: bool = True):
+    """Plots the data distribution of the input data. If x is single-feature, creates a density plot. If
+    x is multi-feature, applies TSNE and creates a scatter plot of the two classes.
 
     Args:
-        x (ndarray): 2D feature array with shape (n_samples x n_features). If n_features is 1, a density plot is created. Otherwise uses a scatter TSNE plot
-        y (ndarray): 1D integer class labels (array of zeros and ones)
-        ax (Axes): matplotlib Axes object in which the figures are created. If None, creates a new figure
+        pl (Pipeline): a pipeline object containing data and labels
+        ax (Axes): matplotlib Axes object in which the figures are created. If None, creates a new
+                   figure
         show (bool): if True, call plt.show() after creating the figure
     """
     # start the figure
     if ax is None:
         fig, ax = plt.subplots()
+
+    # retrieve data from the pipeline
+    x = pl.x
+    y = pl.y
 
     if x.shape[1] > 1:
         # plot single-feature density-plots for separate classes
