@@ -19,11 +19,12 @@ CLASSIFIERS = {
 METRIC = {
     "roc_auc": "AUC",
     "accuracy": "Accuracy",
+    "balanced_accuracy": "Balanced Accuracy",
     "f1": "F1 score",
 }
 
 def metric_balance(
-    pl: Pipeline, classifier: str ,p_threshold: float = 0.05, ax: plt.Axes = None, show: bool = True
+    pl: Pipeline, classifier: str ,p_threshold: float = 0.01, ax: plt.Axes = None, show: bool = True, show_leg: bool = True,
 ):
     """Visualizes classification scores of different metrics and classifiers across a range
     of imbalance ratios. If you want to add something to the plot, set show to False and
@@ -83,8 +84,8 @@ def metric_balance(
         chance = ax.plot(
             balances,
             curr_perm_score,
-            linestyle="dashed",
-            color="darkgrey",
+            linestyle="dotted",
+            color=f"C{idx_met}",
         )[0]
 
         # visualize statistical significance
@@ -103,23 +104,25 @@ def metric_balance(
         # add current metric to the legend
         if met not in metric_legend:
             metric_legend[METRIC[met]] = line
-
+    # trick to get the chance level dotted line in the legend
+    metric_legend["Chance level"] = ax.plot([],[],linestyle="dotted",color="black")[0]
 
     # add annotations
     ax.set_xlabel("data balance")
     ax.set_ylabel("score")
     ax.set_title(classifier)
 
-    ax.legend(
-        list(metric_legend.values()) + list(classifier_legend.values()),
-        list(metric_legend.keys()) + list(classifier_legend.keys()),
-        ncol=2,
-    )
+    if show_leg is True:
+        ax.legend(
+            list(metric_legend.values()) + list(classifier_legend.values()),
+            list(metric_legend.keys()) + list(classifier_legend.keys()),
+            ncol=1,
+        )
     if show:
         plt.show()
 
 
-def data_distribution(pl: Pipeline, ax: Optional[plt.Axes] = None, show: bool = True):
+def data_distribution(pl: Pipeline, ax: Optional[plt.Axes] = None, show: bool = True, show_leg: bool = True):
     """Plots the data distribution of the input data. If x is single-feature, creates a density plot. If
     x is multi-feature, applies TSNE and creates a scatter plot of the two classes.
 
@@ -139,25 +142,26 @@ def data_distribution(pl: Pipeline, ax: Optional[plt.Axes] = None, show: bool = 
 
     if x.shape[1] > 1:
         # plot single-feature density-plots for separate classes
-        _multi_feature_distribution(x, y, ax)
+        _multi_feature_distribution(x, y, ax, show_leg)
     else:
         # multi-feature TSNE plots
-        _single_feature_distribution(x, y, ax)
+        _single_feature_distribution(x, y, ax, show_leg)
 
     if show:
         plt.show()
 
 
-def _single_feature_distribution(x: np.ndarray, y: np.ndarray, ax: plt.Axes):
+def _single_feature_distribution(x: np.ndarray, y: np.ndarray, ax: plt.Axes, show_leg: bool = True):
     # create density plots
     sns.kdeplot(x[y == 0, 0], ax=ax, label="class 0")
     sns.kdeplot(x[y == 1, 0], ax=ax, label="class 1")
     # add annotations
     ax.set_xlabel("variable")
-    ax.legend()
+    if show_leg:
+        ax.legend()
 
 
-def _multi_feature_distribution(x: np.ndarray, y: np.ndarray, ax: plt.Axes):
+def _multi_feature_distribution(x: np.ndarray, y: np.ndarray, ax: plt.Axes, show_leg: bool = True):
     with warnings.catch_warnings():
         # ignore a TSNE FutureWarning about PCA initialization
         warnings.filterwarnings("ignore", category=FutureWarning)
@@ -168,7 +172,8 @@ def _multi_feature_distribution(x: np.ndarray, y: np.ndarray, ax: plt.Axes):
     # add annotations
     ax.set_xlabel("component 0")
     ax.set_ylabel("component 1")
-    ax.legend()
+    if show_leg:
+        ax.legend()
 
 
 def _check_pipeline(pl: Pipeline):

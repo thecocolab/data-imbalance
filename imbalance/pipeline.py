@@ -7,13 +7,13 @@ from sklearn.model_selection import (
     BaseCrossValidator,
     KFold,
     GroupKFold,
-    permutation_test_score,
 )
 from sklearn.metrics import SCORERS
 from sklearn.linear_model import LogisticRegression
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
+from mlneurotools.ml import classification
 
 
 class Pipeline:
@@ -56,7 +56,7 @@ class Pipeline:
         y: Sequence[int],
         groups: Optional[Sequence[int]] = None,
         classifiers: Union[str, BaseEstimator, List[Any]] = "lr",
-        metrics: List[str] = ["accuracy", "roc_auc"],
+        metrics: List[str] = ["accuracy", "roc_auc", "f1", "balanced_accuracy"],
         cross_validation: BaseCrossValidator = None,
         dataset_balance: Sequence[float] = [0.1, 0.3, 0.5, 0.7, 0.9],
         dataset_size: Union[str, Sequence[float]] = "full",
@@ -144,7 +144,9 @@ class Pipeline:
         # other parameters
         self.n_permutations = n_permutations
         self.n_init = n_init
-        self.metrics = metrics
+        # For now we will use those metrics and we ignore the input metrics parameter
+        # TODO need to remove the metrics parameter if we don't use it and leave a placeholder for older code.
+        self.metrics = ["accuracy", "roc_auc", "f1", "balanced_accuracy"]
 
         # set random seed
         self.seed = rand_seed
@@ -240,61 +242,65 @@ class Pipeline:
                         clf_name = type(clf).__name__
                         results[nr_init][dset_balance][dset_size][clf_name] = {}
 
-                        for metric in self.metrics:
-                            # add current configuration to progress bar
-                            pbar.set_postfix(
-                                dict(
-                                    size=dset_size,
-                                    balance=dset_balance,
-                                    classifier=clf_name,
-                                    metric=metric,
-                                )
+                        # add current configuration to progress bar
+                        pbar.set_postfix(
+                            dict(
+                                size=dset_size,
+                                balance=dset_balance,
+                                classifier=clf_name,
+                            )
+                        )
+
+                        # only run the permutation test for the first  interation
+                        if nr_init == 0:
+                            # run a permutation test for the current combination of
+                            # imbalance, sample size, classifier and metric
+                            output = classification(
+                                clone(clf),
+                                self.cross_validation,
+                                curr_x,
+                                curr_y,
+                                groups=curr_groups,
+                                perm=self.n_permutations if self.n_permutations != 0 else None,
+                                n_jobs=-1,
+                            )
+                        # don't run permutation test for other itertations
+                        elif nr_init > 0:
+                            # we don't have a p-value if the number of permutations is zero
+                            output = classification(
+                                clone(clf),
+                                self.cross_validation,
+                                curr_x,
+                                curr_y,
+                                groups=curr_groups,
+                                perm=None,
+                                n_jobs=-1,
                             )
 
-                            # only run the permutation test for the first  interation
-                            if nr_init == 0:
-                                # run a permutation test for the current combination of
-                                # imbalance, sample size, classifier and metric
-                                score, perm_score, pvalue = permutation_test_score(
-                                    clone(clf),
-                                    curr_x,
-                                    curr_y,
-                                    groups=curr_groups,
-                                    scoring=metric,
-                                    cv=self.cross_validation,
-                                    n_permutations=self.n_permutations,
-                                    n_jobs=-1,
-                                )
+                        # store current results
+                        results[nr_init][dset_balance][dset_size][clf_name]["accuracy"] = (
+                            output['acc_score'],
+                            output['acc_pvalue'] if 'acc_pvalue' in output.keys() else None,
+                            np.mean(output['acc_pscores']) if 'acc_pscores' in output.keys() else None,
+                        )
+                        results[nr_init][dset_balance][dset_size][clf_name]["roc_auc"] = (
+                            output['auc_score'],
+                            output['auc_pvalue'] if 'auc_pvalue' in output.keys() else None,
+                            np.mean(output['auc_pscores']) if 'auc_pscores' in output.keys() else None,
+                        )
+                        results[nr_init][dset_balance][dset_size][clf_name]["balanced_accuracy"] = (
+                            output['bacc_score'],
+                            output['bacc_pvalue'] if 'bacc_pvalue' in output.keys() else None,
+                            np.mean(output['bacc_pscores']) if 'bacc_pscores' in output.keys() else None,
+                        )
+                        results[nr_init][dset_balance][dset_size][clf_name]["f1"] = (
+                            output['f1_score'],
+                            output['f1_pvalue'] if 'f1_pvalue' in output.keys() else None,
+                            np.mean(output['f1_pscores']) if 'f1_pscores' in output.keys() else None,
+                        )
 
-                                # average random score over permutations
-                                perm_score_avg = np.mean(perm_score)
-
-                            # don't run permutation test for other itertations
-                            elif nr_init > 0:
-                                # we don't have a p-value if the number of permutations is zero
-                                score, perm_score, pvalue = permutation_test_score(
-                                    clone(clf),
-                                    curr_x,
-                                    curr_y,
-                                    groups=curr_groups,
-                                    scoring=metric,
-                                    cv=self.cross_validation,
-                                    n_permutations=0,
-                                    n_jobs=-1,
-                                )
-
-                                pvalue = None
-                                perm_score = None
-
-                            # store current results
-                            results[nr_init][dset_balance][dset_size][clf_name][metric] = (
-                                score,
-                                pvalue,
-                                perm_score_avg
-                            )
-
-                            # update the progress bar
-                            pbar.update()
+                        # update the progress bar
+                        pbar.update()
         pbar.close()
 
         # collect resutls and average over iterations
@@ -599,7 +605,7 @@ if __name__ == "__main__":
     x, y, groups = gaussian_binary(n_groups=5)
 
     # initialize the pipeline
-    pl = Pipeline(x, y, groups)
+    pl = Pipeline(x, y, groups, n_permutations=1)
     # fit and evaluate the classifiers with different configurations
     pl.evaluate()
     # print classification results
