@@ -90,21 +90,17 @@ def _check_pipeline(pl: Pipeline):
 
 if __name__ == "__main__":
     from sklearn.svm import SVC
+    from imbalance.data import gaussian_binary
 
     # generate random data
-    n = 1000
-    x = np.concatenate(
-        [np.random.normal(0, size=n // 2), np.random.normal(2, size=n // 2)]
-    ).reshape(-1, 1)
-    y = np.concatenate([np.zeros(n // 2), np.ones(n // 2)]).astype(int)
-    groups = np.concatenate([np.arange(n // 2), np.arange(n // 2)]).astype(int)
+    x, y, groups = gaussian_binary(n_samples_per_class=1000)
 
     # run the pipeline
     pl = Pipeline(
         x,
         y,
         groups,
-        dataset_balance=np.linspace(0, 1, 100)[1:-1],
+        dataset_balance=np.linspace(0, 1, 32)[1:-1],
         classifiers=["lr", "lda", SVC(kernel="linear")],
         metrics=["roc_auc", "accuracy", "f1", "balanced_accuracy"],
     )

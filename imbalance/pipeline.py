@@ -62,10 +62,7 @@ class Pipeline:
     ):
         # check x and y parameters
         x, y = np.asarray(x), np.asarray(y)
-        assert x.ndim in [
-            1,
-            2,
-        ], f"x must be 1- or 2-dimensional, got {x.ndim}D"
+        assert x.ndim in [1, 2,], f"x must be 1- or 2-dimensional, got {x.ndim}D"
         assert (
             y.ndim == 1 and y.dtype == int
         ), f"y must be a 1D integer array, got {y.ndim}D with type {y.dtype}"
@@ -498,14 +495,10 @@ class Pipeline:
 
 if __name__ == "__main__":
     from pprint import pprint
+    from imbalance.data import gaussian_binary
 
     # generate random data
-    n = 1000
-    x = np.concatenate(
-        [np.random.normal(0, size=n // 2), np.random.normal(2, size=n // 2)]
-    ).reshape(-1, 1)
-    y = np.concatenate([np.zeros(n // 2), np.ones(n // 2)]).astype(int)
-    groups = np.concatenate([np.arange(n // 2), np.arange(n // 2)]).astype(int)
+    x, y, groups = gaussian_binary()
 
     # initialize the pipeline
     pl = Pipeline(x, y, groups)
