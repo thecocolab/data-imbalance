@@ -475,7 +475,7 @@ class Pipeline:
             groups_x, groups_y, groups_groups = [], [], []
             for group in np.unique(groups):
                 group_idx = np.where(groups == group)[0]
-                group_x, group_y, group_groups = Pipeline.unbalance_data(
+                group_x, group_y, _ = Pipeline.unbalance_data(
                     ratio, x[group_idx], y[group_idx]
                 )
                 groups_x.append(group_x)
@@ -502,7 +502,7 @@ class Pipeline:
             n1 = int(class_counts[1] * alpha)
 
             # rebalance data
-            idxs = np.concatenate([np.where(y == 0)[0][:n0], np.where(y == 1)[0][:n1]])
+            idxs = np.concatenate([np.where(y == unique_y[0])[0][:n0], np.where(y == unique_y[1])[0][:n1]])
             return x[idxs], y[idxs], None if groups is None else groups[idxs]
 
     def limit_dataset_size(
