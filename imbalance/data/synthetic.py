@@ -8,6 +8,7 @@ def gaussian_binary(
     n_samples_per_class: int = 1000,
     n_features: int = 1,
     n_groups: int = 1,
+    rand_seed: int = 0,
 ) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
     """Generates random gaussian distributions with two different means and corresponding class labels.
 
@@ -23,6 +24,9 @@ def gaussian_binary(
         y (ndarray): the corresponding labels as an integer array of 0 and 1
         groups (ndarray, None): group labels assigned to the data (None if n_groups is set to 0)
     """
+    # set random seed
+    if rand_seed is not None:
+        np.random.seed(rand_seed)
     x, y, groups = [], [], []
     for group in range(n_groups):
         n_samples_per_group = n_samples_per_class // n_groups
