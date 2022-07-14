@@ -396,25 +396,39 @@ class Pipeline:
         Returns:
             (x, y, groups): rebalanced data, labels and group labels
         """
-        # make sure we start with a balanced dataset
-        unique_y, class_counts = np.unique(y, return_counts=True)
-        assert (class_counts == class_counts[0]).all(), (
-            f"classes have different numbers of "
-            f"samples (counts: {list(class_counts)})"
-        )
+        if groups is not None:
+            groups_x, groups_y, groups_groups = [], [], []
+            for group in np.unique(groups):
+                group_idx = np.where(groups == group)[0]
+                group_x, group_y, group_groups = Pipeline.unbalance_data(
+                    ratio, x[group_idx], y[group_idx]
+                )
+                groups_x.append(group_x)
+                groups_y.append(group_y)
+                groups_groups.append([group] * len(group_y))
+            return np.concatenate(groups_x), np.concatenate(groups_y), np.concatenate(groups_groups)
 
-        # compute expected class sizes according to ratio
-        n0 = class_counts[1] / ratio - class_counts[1]
-        n1 = class_counts[1]
+        else:
+            # make sure we start with a balanced dataset
+            unique_y, class_counts = np.unique(y, return_counts=True)
 
-        # make sure the expected class sizes are realizable with the provided data
-        alpha = min(class_counts[0] / n0, class_counts[1] / n1)
-        n0 = int(n0 * alpha)
-        n1 = int(class_counts[1] * alpha)
+            assert (class_counts == class_counts[0]).all(), (
+                f"classes have different numbers of "
+                f"samples (counts: {list(class_counts)})"
+            )
 
-        # rebalance data
-        idxs = np.concatenate([np.where(y == 0)[0][:n0], np.where(y == 1)[0][:n1]])
-        return x[idxs], y[idxs], None if groups is None else groups[idxs]
+            # compute expected class sizes according to ratio
+            n0 = class_counts[1] / ratio - class_counts[1]
+            n1 = class_counts[1]
+
+            # make sure the expected class sizes are realizable with the provided data
+            alpha = min(class_counts[0] / n0, class_counts[1] / n1)
+            n0 = int(n0 * alpha)
+            n1 = int(class_counts[1] * alpha)
+
+            # rebalance data
+            idxs = np.concatenate([np.where(y == 0)[0][:n0], np.where(y == 1)[0][:n1]])
+            return x[idxs], y[idxs], None if groups is None else groups[idxs]
 
     def limit_dataset_size(
         ratio: float, x: np.ndarray, y: np.ndarray, groups: np.ndarray = None
@@ -507,7 +521,7 @@ if __name__ == "__main__":
     from imbalance.data import gaussian_binary
 
     # generate random data
-    x, y, groups = gaussian_binary()
+    x, y, groups = gaussian_binary(n_groups=5)
 
     # initialize the pipeline
     pl = Pipeline(x, y, groups)
