@@ -7,38 +7,32 @@ from sklearn.linear_model import LogisticRegression
 import os
 import numpy as np
 
-pipeline_path='data/eeg_%%.pickle'
+pipeline_path='data/eeg_roi.pickle'
 features_path ="data/eeg_features.npy"
 chans = get_info().ch_names
 
-rois = [None, lambda x: x[0] in ['P','O']] + [[x] for x in chans]
-rois_names = ['all','parieto-occipital'] + chans
-
 if not os.path.isfile(features_path):
-    # load or generate dataset
-    x, y, groups = eegbci('data',roi=None)
+    x, y, groups = eegbci('data',roi=lambda x: x[0] in ['P','O'])
     np.save(features_path,dict(x=x, y=y, groups=groups))
 else:
     features = np.load(features_path,allow_pickle=True).item()
     x, y, groups = features["x"] , features["y"] , features["groups"]
 
-# Tests : all chans, roi, chan by chan
+if not os.path.isfile(pipeline_path):
+    pl = Pipeline(
+        x,
+        y,
+        groups,
+        dataset_balance = np.linspace(0.1, 0.9, 25),
+        classifiers = ["lda","svm",LogisticRegression(max_iter=1000)],#,'rf'],
+        n_permutations = 10,
+        n_init = 2,
+    )
+    # fit and evaluate classifiers on dataset configurations
+    pl.evaluate()
 
-for roi,roi_name in zip(rois,rois_names):
-    if not os.path.isfile(pipeline_path):
-        pl = Pipeline(
-            x,
-            y,
-            groups,
-            dataset_balance = [0.1,0.5,0.9], #np.linspace(0.1, 0.9, 25),
-            classifiers = ["rf","lda"],#['rf',"lda","svm",LogisticRegression(max_iter=1000)],
-            metrics = ["roc_auc","accuracy", "f1", "balanced_accuracy"],
-        )
-        # fit and evaluate classifiers on dataset configurations
-        pl.evaluate()
-
-        # Store data (serialize)
-        with open(pipeline_path, 'wb') as handle:
-            pickle.dump(pl, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    else:
-        pl = pickle.load(open(pipeline_path,"rb"))
+    # Store data (serialize)
+    with open(pipeline_path, 'wb') as handle:
+        pickle.dump(pl, handle, protocol=pickle.HIGHEST_PROTOCOL)
+else:
+    pl = pickle.load(open(pipeline_path,"rb"))
