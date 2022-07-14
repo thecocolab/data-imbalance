@@ -39,6 +39,8 @@ class Pipeline:
                                         dataset sizes
         n_permutations (int): number of permutations to run for evaluating statistical significance
                               (set to 0 to disable permutation tests)
+        n_init (int): number of reinitialisation to run for evaluating variance in datasplit
+                              (set to 1 to run only one time)
     """
 
     CLASSIFIERS: Dict[str, BaseEstimator] = {
@@ -60,6 +62,7 @@ class Pipeline:
         dataset_size: Union[str, Sequence[float]] = "full",
         n_permutations: int = 0,
         rand_seed: int = 0,
+        n_init: int = 1,
     ):
         # check x and y parameters
         x, y = np.asarray(x), np.asarray(y)
@@ -140,6 +143,7 @@ class Pipeline:
 
         # other parameters
         self.n_permutations = n_permutations
+        self.n_init = n_init
         self.metrics = metrics
 
         # set random seed
@@ -169,8 +173,8 @@ class Pipeline:
                     # classifier name
                     clf1: {
                         # metric name
-                        metric1: (score-metric1, p-value-metric1),
-                        metric2: (score-metric2, p-value-metric2),
+                        metric1: (meanscore-metric1, stdscore-metric1, p-value-metric1, permutation_score_metric1),
+                        metric2: (meanscore-metric2, stdscore-metric2, p-value-metric2, permutation_score_metric2),
                         ...
                     },
                     clf2: ...
@@ -185,88 +189,151 @@ class Pipeline:
             * len(self.dataset_size)
             * len(self.classifiers)
             * len(self.metrics)
+            * self.n_init
         )
         pbar = tqdm(desc="fitting classifiers", total=num_loops)
 
         # initialize result dictionary
         results = {}
+        avg_results = {} # results averaged over reinitialisation
 
-        # initialize fixed seed
         if self.seed is not None:
             np.random.seed(self.seed)
 
-        # nested loops over data configurations, classifiers and metrics
-        for dset_balance in self.dataset_balance:
-            results[dset_balance] = {}
-
-            # adjust class balance by dropping as few samples as possible
-            unbalanced_x, unbalanced_y, unbalanced_groups = Pipeline.unbalance_data(
-                dset_balance, self.x, self.y, self.groups
+        for nr_init in range(self.n_init):
+            results[nr_init] = {}
+            # shuffle the dataset randomly
+            shuffle_x, shuffle_y, shuffle_groups = Pipeline.shuffle(
+                self.x, self.y, self.groups
             )
 
+            # nested loops over data configurations, classifiers and metrics
+            for dset_balance in self.dataset_balance:
+                results[nr_init][dset_balance] = {}
+
+                # adjust class balance by dropping as few samples as possible
+                unbalanced_x, unbalanced_y, unbalanced_groups = Pipeline.unbalance_data(
+                    dset_balance, shuffle_x, shuffle_y, shuffle_groups
+                )
+
+                for dset_size in self.dataset_size:
+                    results[nr_init][dset_balance][dset_size] = {}
+
+                    # limit the size of the dataset while maintaining class distribution
+                    curr_x, curr_y, curr_groups = Pipeline.limit_dataset_size(
+                        dset_size, unbalanced_x, unbalanced_y, unbalanced_groups
+                    )
+
+                    # make sure none of the classes have 0 samples
+                    assert (np.unique(curr_y, return_counts=True)[1] > 0).all(), (
+                        f"one class has no samples for balance={dset_balance} "
+                        f"and size={dset_size}. Increase the total dataset size "
+                        f"or choose less extreme configurations"
+                    )
+
+                    # shuffle the dataset randomly
+                    curr_x, curr_y, curr_groups = Pipeline.shuffle(
+                        curr_x, curr_y, curr_groups
+                    )
+
+                    for clf in self.classifiers:
+                        clf_name = type(clf).__name__
+                        results[nr_init][dset_balance][dset_size][clf_name] = {}
+
+                        for metric in self.metrics:
+                            # add current configuration to progress bar
+                            pbar.set_postfix(
+                                dict(
+                                    size=dset_size,
+                                    balance=dset_balance,
+                                    classifier=clf_name,
+                                    metric=metric,
+                                )
+                            )
+
+                            # only run the permutation test for the first  interation
+                            if nr_init == 0:
+                                # run a permutation test for the current combination of
+                                # imbalance, sample size, classifier and metric
+                                score, perm_score, pvalue = permutation_test_score(
+                                    clone(clf),
+                                    curr_x,
+                                    curr_y,
+                                    groups=curr_groups,
+                                    scoring=metric,
+                                    cv=self.cross_validation,
+                                    n_permutations=self.n_permutations,
+                                    n_jobs=-1,
+                                )
+
+                                # average random score over permutations
+                                perm_score_avg = np.mean(perm_score)
+
+                            # don't run permutation test for other itertations
+                            elif nr_init > 0:
+                                # we don't have a p-value if the number of permutations is zero
+                                score, perm_score, pvalue = permutation_test_score(
+                                    clone(clf),
+                                    curr_x,
+                                    curr_y,
+                                    groups=curr_groups,
+                                    scoring=metric,
+                                    cv=self.cross_validation,
+                                    n_permutations=0,
+                                    n_jobs=-1,
+                                )
+
+                                pvalue = None
+                                perm_score = None
+
+                            # store current results
+                            results[nr_init][dset_balance][dset_size][clf_name][metric] = (
+                                score,
+                                pvalue,
+                                perm_score_avg
+                            )
+
+                            # update the progress bar
+                            pbar.update()
+        pbar.close()
+
+        # collect resutls and average over iterations
+        for dset_balance in self.dataset_balance:
+            avg_results[dset_balance] = {}
+
             for dset_size in self.dataset_size:
-                results[dset_balance][dset_size] = {}
-
-                # limit the size of the dataset while maintaining class distribution
-                curr_x, curr_y, curr_groups = Pipeline.limit_dataset_size(
-                    dset_size, unbalanced_x, unbalanced_y, unbalanced_groups
-                )
-
-                # make sure none of the classes have 0 samples
-                assert (np.unique(curr_y, return_counts=True)[1] > 0).all(), (
-                    f"one class has no samples for balance={dset_balance} "
-                    f"and size={dset_size}. Increase the total dataset size "
-                    f"or choose less extreme configurations"
-                )
-
-                # shuffle the dataset randomly
-                curr_x, curr_y, curr_groups = Pipeline.shuffle(
-                    curr_x, curr_y, curr_groups
-                )
+                avg_results[dset_balance][dset_size] = {}
 
                 for clf in self.classifiers:
                     clf_name = type(clf).__name__
-                    results[dset_balance][dset_size][clf_name] = {}
+                    avg_results[dset_balance][dset_size][clf_name] = {}
 
                     for metric in self.metrics:
-                        # add current configuration to progress bar
-                        pbar.set_postfix(
-                            dict(
-                                size=dset_size,
-                                balance=dset_balance,
-                                classifier=clf_name,
-                                metric=metric,
-                            )
-                        )
+                        # store results from first iteration only
+                        pvalue = results[0][dset_balance][dset_size][clf_name][metric][1]
+                        perm_score = results[0][dset_balance][dset_size][clf_name][metric][2]
 
-                        # run a permutation test for the current combination of
-                        # imbalance, sample size, classifier and metric
-                        score, _, pvalue = permutation_test_score(
-                            clone(clf),
-                            curr_x,
-                            curr_y,
-                            groups=curr_groups,
-                            scoring=metric,
-                            cv=self.cross_validation,
-                            n_permutations=self.n_permutations,
-                            n_jobs=-1,
-                            random_state=None,
-                        )
+                        scores = []
+                        for nr_init in range(self.n_init):
+                            scores.append(results[nr_init][dset_balance][dset_size][clf_name][metric][0])
+                        # average the score over all iterations
+                        score_mean = np.mean(scores)
+                        score_std = np.std(scores)
 
-                        # we don't have a p-value if the number of permutations is zero
-                        if self.n_permutations == 0:
-                            pvalue = None
-
-                        # store current results
-                        results[dset_balance][dset_size][clf_name][metric] = (
-                            score,
+                        avg_results[dset_balance][dset_size][clf_name][metric] = (
+                            score_mean,
+                            score_std,
                             pvalue,
+                            perm_score
                         )
 
                         # update the progress bar
                         pbar.update()
-        pbar.close()
-        self.scores = results
+
+
+        self.scores = avg_results
+
+
 
     def get(
         self,
@@ -370,10 +437,18 @@ class Pipeline:
                             result[bal][size][clf][met] = self.scores[bal][size][clf][
                                 met
                             ][0]
-                        elif result_type == "pvalue":
+                        elif result_type == "score_std":
                             result[bal][size][clf][met] = self.scores[bal][size][clf][
                                 met
                             ][1]
+                        elif result_type == "pvalue":
+                            result[bal][size][clf][met] = self.scores[bal][size][clf][
+                                met
+                            ][2]
+                        elif result_type == "perm_score":
+                            result[bal][size][clf][met] = self.scores[bal][size][clf][
+                                met
+                            ][3]
 
         # remove empty dimensions from the dictionary but keep dimensions where "all" was specified
         result = Pipeline._squeeze_dict(

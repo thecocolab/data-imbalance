@@ -54,6 +54,8 @@ Note that `x` and `y` are the only required arguments to instantiate a `Pipeline
 - **`dataset_balance` (optional, default=`[0.1, 0.3, 0.5, 0.7, 0.9]`):** A list of imbalance ratios that should be tested. Ratios should be larger than zero and smaller than one. A value of zero corresponds to a dataset made up fully of class 0, a balance value of 0.5 corresponds to a perfectly balanced dataset (50% of class 0 and 50% of class 1) and a balance of one corresponds to a dataset made up fully of class 1.
 - **`dataset_size` (optional, default=`"full"`):** Can be either `"full"` or a list of ratios (`0 < x <= 1`). The value `"full"` is equivalent to `dataset_size=[1.0]`, which evaluates the complete dataset. Values between zero and one artificially limit the number of samples, allowing to check effects related to dataset size.
 - **`n_permutations` (optional, default=`0`):** The number of permutations to run for evaluating statistical significance using permutation tests. A value of zero does not run permutation tests.
+- **`random_seed` (optional, default=`None`):** The random seed to use.
+- **`n_init` (optional, default=`1`):** Number of re-initializations of the whole pipeline.
 
 After calling `pl.evaluate()` on a `Pipeline` object, the nested dictionary `pl.scores` contains all results. The dictionary is structued in the following way:
 ```python
@@ -65,8 +67,8 @@ pl.scores = {
             # classifier name
             "clf1": {
                 # metric name
-                "metric1": (<score-metric1>, <p-value-metric1>),
-                "metric2": (<score-metric2>, <p-value-metric2>),
+                "metric1": (mean_score-metric1, std_score-metric1, p-value-metric1, permutation_score_metric1),
+                "metric2": (mean_score-metric2, std_score-metric2, p-value-metric2, permutation_score_metric2),
                 ...
             },
             "clf2": ...

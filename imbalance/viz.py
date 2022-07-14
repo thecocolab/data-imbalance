@@ -9,9 +9,21 @@ from imbalance.pipeline import Pipeline
 
 LINESTYLES = ["solid", "dashed", "dotted", "dashdot"]
 
+CLASSIFIERS = {
+    "lr": "LogisticRegression",
+    "svm": "SVC",
+    "lda": "LinearDiscriminantAnalysis",
+    "rf": "RandomForestClassifier",
+}
+
+METRIC = {
+    "roc_auc": "AUC",
+    "accuracy": "Accuracy",
+    "f1": "F1 score",
+}
 
 def metric_balance(
-    pl: Pipeline, p_threshold: float = 0.05, ax: plt.Axes = None, show: bool = True
+    pl: Pipeline, classifier: str ,p_threshold: float = 0.05, ax: plt.Axes = None, show: bool = True
 ):
     """Visualizes classification scores of different metrics and classifiers across a range
     of imbalance ratios. If you want to add something to the plot, set show to False and
@@ -19,6 +31,7 @@ def metric_balance(
 
     Args:
         pl (Pipeline): a pipeline object, which has been evaluated
+        classifier (string): the classifier within the pipeline object to plot
         p_threshold (float): threshold of statistical significance
         ax (Axes): if provided, plot in ax instead of creating a new figure
         show (bool): whether the function calls plt.show() or not
@@ -27,53 +40,75 @@ def metric_balance(
 
     # extract relevant results from the pipeline
     scores = pl.get(dataset_size="max", result_type="score")
+    scores_std = pl.get(dataset_size="max", result_type="score_std")
     pvalues = pl.get(dataset_size="max", result_type="pvalue")
+    perm_score = pl.get(dataset_size="max", result_type="perm_score")
 
     # start the figure
     if ax is None:
         fig, ax = plt.subplots()
 
     metric_legend, classifier_legend = {}, {}
-    for idx_clf, clf in enumerate(scores[list(scores.keys())[0]].keys()):
-        for idx_met, met in enumerate(scores[list(scores.keys())[0]][clf].keys()):
-            # get the current scores and p-values as lists
-            balances = np.array(list(scores.keys()))
-            curr_scores = np.array([scores[bal][clf][met] for bal in balances])
-            curr_pvals = np.array([pvalues[bal][clf][met] for bal in balances])
 
-            # plot the scores for the current classifier and metric
-            line = ax.plot(
-                balances,
-                curr_scores,
-                linestyle=LINESTYLES[idx_clf],
+    clf = CLASSIFIERS[classifier]
+
+
+    for idx_met, met in enumerate(scores[list(scores.keys())[0]][clf].keys()):
+        # get the current scores and p-values as lists
+        balances = np.array(list(scores.keys()))
+        curr_scores = np.array([scores[bal][clf][met] for bal in balances])
+        curr_scores_std = np.array([scores_std[bal][clf][met] for bal in balances])
+        curr_pvals = np.array([pvalues[bal][clf][met] for bal in balances])
+        curr_perm_score = np.array([perm_score[bal][clf][met] for bal in balances])
+
+
+        # plot the scores for the current classifier and metric
+        line = ax.plot(
+            balances,
+            curr_scores,
+            linestyle="solid",
+            color=f"C{idx_met}",
+        )[0]
+
+        # fill the std area
+        stds = ax.fill_between(
+            balances,
+            curr_scores - curr_scores_std,
+            curr_scores + curr_scores_std,
+            color=f"C{idx_met}",
+            alpha=0.5,
+        )
+
+        # plot the chance level for the current classifier and metric
+        chance = ax.plot(
+            balances,
+            curr_perm_score,
+            linestyle="dashed",
+            color="darkgrey",
+        )[0]
+
+        # visualize statistical significance
+        try:
+            mask = curr_pvals < p_threshold
+            ax.scatter(
+                balances[mask],
+                curr_scores[mask],
+                marker="*",
+                s=70,
                 color=f"C{idx_met}",
-            )[0]
+            )
+        except TypeError:
+            pass
 
-            # visualize statistical significance
-            try:
-                mask = curr_pvals < p_threshold
-                ax.scatter(
-                    balances[mask],
-                    curr_scores[mask],
-                    marker="*",
-                    s=70,
-                    color=f"C{idx_met}",
-                )
-            except TypeError:
-                pass
+        # add current metric to the legend
+        if met not in metric_legend:
+            metric_legend[METRIC[met]] = line
 
-            # add current metric to the legend
-            if met not in metric_legend:
-                metric_legend[met] = line
-            # add current classifier to the legend
-            if clf not in classifier_legend:
-                l = copy(line)
-                l.set_color("black")
-                classifier_legend[clf] = l
 
     # add annotations
     ax.set_xlabel("data balance")
     ax.set_ylabel("score")
+    ax.set_title(classifier)
 
     ax.legend(
         list(metric_legend.values()) + list(classifier_legend.values()),
