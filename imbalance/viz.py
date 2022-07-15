@@ -294,8 +294,8 @@ def data_distribution(pl: Pipeline, ax: Optional[plt.Axes] = None, show: bool = 
 
 def _single_feature_distribution(x: np.ndarray, y: np.ndarray, ax: plt.Axes, show_leg: bool = True):
     # create density plots
-    sns.kdeplot(x[y == 0, 0], ax=ax, label="class 0")
-    sns.kdeplot(x[y == 1, 0], ax=ax, label="class 1")
+    sns.kdeplot(x[y == 0, 0], shade=True, color="C0", ax=ax, label="class 0")
+    sns.kdeplot(x[y == 1, 0], shade=True, color="C1", ax=ax, label="class 1")
     # add annotations
     ax.set_xlabel("variable")
     if show_leg:
@@ -337,7 +337,6 @@ if __name__ == "__main__":
         y,
         groups,
         dataset_balance=np.linspace(0.1, 0.9, 25),
-        metrics=["roc_auc", "accuracy", "f1", "balanced_accuracy"],
     )
     pl.evaluate()
 
