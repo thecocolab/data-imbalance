@@ -364,9 +364,6 @@ class Pipeline:
                             perm_score,
                         )
 
-                        # update the progress bar
-                        pbar.update()
-
         self.scores = avg_results
 
     def get(
