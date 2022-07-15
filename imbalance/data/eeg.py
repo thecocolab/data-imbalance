@@ -12,7 +12,7 @@ def eegbci(
     band : Tuple[float,float]= (8.,12.),
     scale : bool=True,
     roi : Union[List[str],Callable]=None,
-    mean : bool=True,
+    n_features : str = 'single',
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Returns the eyes-close (1) and eyes-open (0) EEG dataset.
 
@@ -22,7 +22,7 @@ def eegbci(
         band (tuple[float,float]): frequency range desired
         scale (bool) : Whether to apply (True) a zero-mean unit-variance scaler or not (False)
         roi (list[str],Callable) : List of channel names or a function that selects (returns True) based on the channel name.
-        mean (bool) : Whether to apply mean along channels or not.
+        n_features (str) : 'single' to apply mean along channels or 'multi' to keep the channels.
     Returns:
         X : power features array of shape (samples, channel)
         Y : label array of shape (samples,)
@@ -101,7 +101,7 @@ def eegbci(
         else:
             idxs = [chans.index(c) for c in chans if roi(c)]
         X = X[:,idxs]
-    if mean:
+    if n_features == 'single':
         X = np.mean(X,axis=-1,keepdims=True)
 
     # Scale if desired

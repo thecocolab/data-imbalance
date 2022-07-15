@@ -8,9 +8,10 @@ from sklearn.ensemble import RandomForestClassifier
 import os
 import numpy as np
 
-pipeline_path='data/eeg_roi.pickle'
-features_path ="data/eeg_features.npy"
 chans = get_info().ch_names
+n_features = 'multi'
+pipeline_path=f'data/eeg_roi_{n_features}.pickle'
+features_path =f"data/eeg_features_{n_features}.npy"
 
 if not os.path.isfile(features_path):
     x, y, groups = eegbci('data',roi=lambda x: x[0] in ['P','O'])
@@ -25,7 +26,7 @@ if not os.path.isfile(pipeline_path):
         y,
         groups,
         dataset_balance = np.linspace(0.1, 0.9, 25),
-        classifiers = ["lda","svm",LogisticRegression(max_iter=1000),RandomForestClassifier(n_estimators=25)],#,'rf'],
+        classifiers = ["lda","svm",LogisticRegression(max_iter=1000),RandomForestClassifier(n_estimators=25)],
         n_permutations = 0,
         n_init = 10,
     )
