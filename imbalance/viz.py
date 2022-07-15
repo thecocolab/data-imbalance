@@ -327,8 +327,8 @@ if __name__ == "__main__":
         x,
         y,
         groups,
-        dataset_balance=np.linspace(0, 1, 32)[1:-1],
-        classifiers=["lr", "lda", SVC(kernel="linear")],
+        dataset_balance=np.linspace(0.1, 0.9, 25),
+        classifiers=["lr", "lda", SVC(kernel="linear", probability=True)],
         metrics=["roc_auc", "accuracy", "f1", "balanced_accuracy"],
     )
     pl.evaluate()
