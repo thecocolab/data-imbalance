@@ -275,7 +275,7 @@ def plot_different_cvs(
         plt.show()
 
 
-def data_distribution(pl: Pipeline, ax: Optional[plt.Axes] = None, show: bool = True, show_leg: bool = True):
+def data_distribution(pl: Pipeline, ax: Optional[plt.Axes] = None, show: bool = True, show_leg: bool = True, class_names: list = None):
     """Plots the data distribution of the input data. If x is single-feature, creates a density plot. If
     x is multi-feature, applies TSNE and creates a scatter plot of the two classes.
 
@@ -284,6 +284,8 @@ def data_distribution(pl: Pipeline, ax: Optional[plt.Axes] = None, show: bool = 
         ax (Axes): matplotlib Axes object in which the figures are created. If None, creates a new
                    figure
         show (bool): if True, call plt.show() after creating the figure
+        class_names (list): list of names of the classes (indexed by the integers corresponding to a
+                            class)
     """
     # start the figure
     if ax is None:
@@ -295,33 +297,37 @@ def data_distribution(pl: Pipeline, ax: Optional[plt.Axes] = None, show: bool = 
 
     if x.shape[1] > 1:
         # plot single-feature density-plots for separate classes
-        _multi_feature_distribution(x, y, ax, show_leg)
+        _multi_feature_distribution(x, y, ax, show_leg, class_names=class_names)
     else:
         # multi-feature TSNE plots
-        _single_feature_distribution(x, y, ax, show_leg)
+        _single_feature_distribution(x, y, ax, show_leg, class_names=class_names)
 
     if show:
         plt.show()
 
 
-def _single_feature_distribution(x: np.ndarray, y: np.ndarray, ax: plt.Axes, show_leg: bool = True):
+def _single_feature_distribution(x: np.ndarray, y: np.ndarray, ax: plt.Axes, show_leg: bool = True, class_names: list = None):
+    if class_names is None:
+        class_names = ["class 0", "class 1"]
     # create density plots
-    sns.kdeplot(x[y == 0, 0], shade=True, color="C0", ax=ax, label="class 0")
-    sns.kdeplot(x[y == 1, 0], shade=True, color="C1", ax=ax, label="class 1")
+    sns.kdeplot(x[y == 0, 0], shade=True, color="C0", ax=ax, label=class_names[0])
+    sns.kdeplot(x[y == 1, 0], shade=True, color="C1", ax=ax, label=class_names[1])
     # add annotations
     ax.set_xlabel("variable")
     if show_leg:
         ax.legend()
 
 
-def _multi_feature_distribution(x: np.ndarray, y: np.ndarray, ax: plt.Axes, show_leg: bool = True):
+def _multi_feature_distribution(x: np.ndarray, y: np.ndarray, ax: plt.Axes, show_leg: bool = True, class_names: list = None):
+    if class_names is None:
+        class_names = ["class 0", "class 1"]
     with warnings.catch_warnings():
         # ignore a TSNE FutureWarning about PCA initialization
         warnings.filterwarnings("ignore", category=FutureWarning)
         x = TSNE(learning_rate="auto", init="pca").fit_transform(x)
     # TSNE scatter plot
-    ax.scatter(*x[y == 0].T, label="class 0")
-    ax.scatter(*x[y == 1].T, label="class 1")
+    ax.scatter(*x[y == 0].T, label=class_names[0])
+    ax.scatter(*x[y == 1].T, label=class_names[1])
     # add annotations
     ax.set_xlabel("component 0")
     ax.set_ylabel("component 1")
