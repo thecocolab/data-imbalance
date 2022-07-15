@@ -280,22 +280,22 @@ class Pipeline:
                         results[nr_init][dset_balance][dset_size][clf_name]["accuracy"] = (
                             output['acc_score'],
                             output['acc_pvalue'] if 'acc_pvalue' in output.keys() else None,
-                            np.mean(output['acc_pscores']) if 'acc_pscores' in output.keys() else None,
+                            np.nanmean(output['acc_pscores']) if 'acc_pscores' in output.keys() else None,
                         )
                         results[nr_init][dset_balance][dset_size][clf_name]["roc_auc"] = (
                             output['auc_score'],
                             output['auc_pvalue'] if 'auc_pvalue' in output.keys() else None,
-                            np.mean(output['auc_pscores']) if 'auc_pscores' in output.keys() else None,
+                            np.nanmean(output['auc_pscores']) if 'auc_pscores' in output.keys() else None,
                         )
                         results[nr_init][dset_balance][dset_size][clf_name]["balanced_accuracy"] = (
                             output['bacc_score'],
                             output['bacc_pvalue'] if 'bacc_pvalue' in output.keys() else None,
-                            np.mean(output['bacc_pscores']) if 'bacc_pscores' in output.keys() else None,
+                            np.nanmean(output['bacc_pscores']) if 'bacc_pscores' in output.keys() else None,
                         )
                         results[nr_init][dset_balance][dset_size][clf_name]["f1"] = (
                             output['f1_score'],
                             output['f1_pvalue'] if 'f1_pvalue' in output.keys() else None,
-                            np.mean(output['f1_pscores']) if 'f1_pscores' in output.keys() else None,
+                            np.nanmean(output['f1_pscores']) if 'f1_pscores' in output.keys() else None,
                         )
 
                         # update the progress bar
@@ -322,7 +322,7 @@ class Pipeline:
                         for nr_init in range(self.n_init):
                             scores.append(results[nr_init][dset_balance][dset_size][clf_name][metric][0])
                         # average the score over all iterations
-                        score_mean = np.mean(scores)
+                        score_mean = np.nanmean(scores)
                         score_std = np.std(scores)
 
                         avg_results[dset_balance][dset_size][clf_name][metric] = (
