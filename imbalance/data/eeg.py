@@ -7,11 +7,12 @@ from collections.abc import Callable
 from copy import deepcopy
 
 def eegbci(
-    datapath : str,
+    datapath : str = 'data',
     epoch_duration : Union[float,int] = 5,
     band : Tuple[float,float]= (8.,12.),
     scale : bool=True,
     roi : Union[List[str],Callable]=None,
+    n_features : str = 'single',
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Returns the eyes-close (1) and eyes-open (0) EEG dataset.
 
@@ -21,7 +22,7 @@ def eegbci(
         band (tuple[float,float]): frequency range desired
         scale (bool) : Whether to apply (True) a zero-mean unit-variance scaler or not (False)
         roi (list[str],Callable) : List of channel names or a function that selects (returns True) based on the channel name.
-
+        n_features (str) : 'single' to apply mean along channels or 'multi' to keep the channels.
     Returns:
         X : power features array of shape (samples, channel)
         Y : label array of shape (samples,)
@@ -100,6 +101,7 @@ def eegbci(
         else:
             idxs = [chans.index(c) for c in chans if roi(c)]
         X = X[:,idxs]
+    if n_features == 'single':
         X = np.mean(X,axis=-1,keepdims=True)
 
     # Scale if desired
@@ -107,3 +109,23 @@ def eegbci(
         scaler = StandardScaler()
         X = scaler.fit_transform(X)
     return X,Y,G
+
+def get_info(datapath = 'data'):
+    os.makedirs(datapath,exist_ok=True)
+    sub = 1
+    filepath = mne.datasets.eegbci.load_data(sub, [2],path=datapath,update_path=False)[0]
+    raw = mne.io.read_raw_edf(filepath, preload=False)
+    mapping = {x:x.replace('.',' ').rstrip().upper() for x in raw.ch_names}
+    mne.rename_channels(raw.info,mapping)
+    montage = mne.channels.make_standard_montage('standard_1005')
+    montage.rename_channels({x:x.upper() for x in montage.ch_names})
+    raw.set_montage(montage)
+    return raw.info.copy()
+
+if __name__ == '__main__':
+    info = get_info()
+    roi = [x for x in info['ch_names'] if x[0] in ['P','O']]
+    sphere=(0, 0, 0.01, 0.12)
+    mne.viz.plot_sensors(info,sphere=sphere,pointsize=25,linewidth=0,block=True,show_names=roi)
+
+
