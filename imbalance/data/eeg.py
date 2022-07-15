@@ -12,7 +12,7 @@ def eegbci(
     band : Tuple[float,float]= (8.,12.),
     scale : bool=True,
     roi : Union[List[str],Callable]=None,
-    n_features : str = 'single',
+    n_features : str = 'multi',
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Returns the eyes-close (1) and eyes-open (0) EEG dataset.
 
