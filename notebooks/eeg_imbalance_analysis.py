@@ -1,3 +1,4 @@
+from scipy.fft import next_fast_len
 from imbalance.data import eegbci
 from imbalance.data.eeg import get_info
 from imbalance.pipeline import Pipeline
@@ -8,37 +9,46 @@ from sklearn.ensemble import RandomForestClassifier
 import os
 import numpy as np
 
-chans = get_info().ch_names
-n_features = 'multi'
-pipeline_path=f'data/eeg_roi_{n_features}.pickle'
-features_path =f"data/eeg_features_{n_features}.npy"
 
-if not os.path.isfile(features_path):
-    x, y, groups = eegbci('data',roi=lambda x: x[0] in ['P','O'])
-    np.save(features_path,dict(x=x, y=y, groups=groups))
-else:
-    features = np.load(features_path,allow_pickle=True).item()
-    x, y, groups = features["x"] , features["y"] , features["groups"]
+for n_features in ['single','multi']:
+    chans = get_info().ch_names
 
-if not os.path.isfile(pipeline_path):
-    pl = Pipeline(
-        x,
-        y,
-        groups,
-        dataset_balance = np.linspace(0.1, 0.9, 25),
-        classifiers = ["lda","svm",LogisticRegression(max_iter=1000),RandomForestClassifier(n_estimators=25)],
-        n_permutations = 0,
-        n_init = 10,
-    )
-    # fit and evaluate classifiers on dataset configurations
-    pl.evaluate()
+    pipeline_path=f'data/eeg_roi_{n_features}.pickle'
+    features_path =f"data/eeg_features_{n_features}.npy"
 
-    # Store data (serialize)
-    with open(pipeline_path, 'wb') as handle:
-        pickle.dump(pl, handle, protocol=pickle.HIGHEST_PROTOCOL)
-else:
-    pl = pickle.load(open(pipeline_path,"rb"))
+    if not os.path.isfile(features_path):
+        x, y, groups = eegbci('data',roi=lambda x: x[0] in ['P','O'],n_features=n_features)
+        np.save(features_path,dict(x=x, y=y, groups=groups))
+    else:
+        print("loading features from a previous run")
+        features = np.load(features_path,allow_pickle=True).item()
+        x, y, groups = features["x"] , features["y"] , features["groups"]
 
-clfs = [key for key,val in viz.CLASSIFIERS.items()]
-for clf in clfs:
-    viz.metric_balance(pl,clf)
+
+    if not os.path.isfile(pipeline_path):
+        pl = Pipeline(
+            x,
+            y,
+            groups,
+            dataset_balance = np.linspace(0.1, 0.9, 25),
+            classifiers = ["lda","svm",LogisticRegression(max_iter=1000),RandomForestClassifier(n_estimators=25)],
+            n_permutations = 0,
+            n_init = 10,
+        )
+        # fit and evaluate classifiers on dataset configurations
+        pl.evaluate()
+
+        # Store data (serialize)
+        with open(pipeline_path, 'wb') as handle:
+            pickle.dump(pl, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    else:
+        print("loading pipeline from a previous run")
+
+        pl = pickle.load(open(pipeline_path,"rb"))
+
+
+# clfs = [key for key,val in viz.CLASSIFIERS.items()]
+# for clf in clfs:
+#     viz.metric_balance(pl,clf)
+
+# viz.data_distribution(pl)
