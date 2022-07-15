@@ -32,7 +32,8 @@ def metric_balance(
     show_leg: bool = True,
     ignore_metrics : Union[list,str] = [],
     enforce_ylim: bool = True,
-    color_offset: int = 0
+    color_offset: int = 0,
+    reset_colors: bool = False,
 ) -> List[plt.Axes]:
     """Visualizes classification scores of different metrics and classifiers across a range
     of imbalance ratios. If you want to add something to the plot, set show to False and
@@ -48,6 +49,7 @@ def metric_balance(
         ignore_metrics (list, str): name(s) of metrics to ignore in the figure
         enforce_ylim (bool): if True, set the y-limits to (0, 1)
         color_offset (int): offset added to the color index for each classifier
+        reset_colors (bool): if True, start skip ignored metrics in the color circle
     """
     _check_pipeline(pl)
 
@@ -74,6 +76,9 @@ def metric_balance(
         if met in ignore_metrics:
             continue
 
+        # compute the index of the current color
+        color_idx = len(line_plots) if reset_colors else idx_met
+
         # get the current scores and p-values as lists
         balances = np.array(list(scores.keys()))
         curr_scores = np.array([scores[bal][clf][met] for bal in balances])
@@ -87,7 +92,7 @@ def metric_balance(
             balances,
             curr_scores,
             linestyle="solid",
-            color=f"C{idx_met + color_offset}",
+            color=f"C{color_idx + color_offset}",
         )[0]
         line_plots.append(line)
 
@@ -96,7 +101,7 @@ def metric_balance(
             balances,
             curr_scores - curr_scores_std,
             curr_scores + curr_scores_std,
-            color=f"C{idx_met + color_offset}",
+            color=f"C{color_idx + color_offset}",
             alpha=0.5,
         )
 
@@ -105,7 +110,7 @@ def metric_balance(
             balances,
             curr_perm_score,
             linestyle="dotted",
-            color=f"C{idx_met + color_offset}",
+            color=f"C{color_idx + color_offset}",
         )[0]
 
         # visualize statistical significance
@@ -116,7 +121,7 @@ def metric_balance(
                 curr_scores[mask],
                 marker="*",
                 s=70,
-                color=f"C{idx_met + color_offset}",
+                color=f"C{color_idx + color_offset}",
             )
         except TypeError:
             pass
