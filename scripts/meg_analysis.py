@@ -24,14 +24,14 @@ from joblib import Parallel, delayed
 from imbalance.pipeline import Pipeline
 
 
-def compute_and_save_results(x, y, groups, clf, metric, data_path, elec):
-    pl = Pipeline(x, y, groups, metrics=[metric], classifiers=[clf])
+def compute_and_save_results(x, y, groups, clf, data_path, elec):
+    pl = Pipeline(x, y, groups, classifiers=[clf])
     pl.evaluate()
     save_path = os.path.join(data_path, "results")
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     with open(
-        os.path.join(save_path, f"MEG_PSD_inbalance_{metric}_{clf}_{elec}.pckl"),
+        os.path.join(save_path, f"MEG_PSD_imbalance_{clf}_{elec}.pckl"),
         "wb",
     ) as fp:
         pickle.dump(copy.deepcopy(pl), fp, protocol=pickle.HIGHEST_PROTOCOL)
@@ -71,13 +71,13 @@ if __name__ == "__main__":
     dataloader = DataLoader(dataset, batch_size=len(dataset))
     x, y, groups = next(iter(dataloader))
     x = x[:, [1, 2]].mean(axis=1)  # averages the psd values for both gradiometers
+    x = x[..., 1]  # Only using the alpha frequency band
 
     classifiers = ["lr", "svm", "lda", "rf"]
-    metrics = ["f1", "accuracy", "roc_auc", "balanced_accuracy"]
 
     Parallel(n_jobs=-1)(
         delayed(compute_and_save_results)(
-            x[:, elec_index, :], y, groups, clf, metric, data_path, elec_index
+            x[:, elec_index], y, groups, clf, data_path, elec_index
         )
-        for clf, metric in product(classifiers, metrics)
+        for clf in classifiers
     )
