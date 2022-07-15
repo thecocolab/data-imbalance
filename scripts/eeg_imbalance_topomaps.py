@@ -31,8 +31,8 @@ for roi,roi_name in zip(rois,rois_names):
             x,
             y,
             groups,
-            dataset_balance = [0.1,0.5,0.9], #np.linspace(0.1, 0.9, 25),
-            classifiers = ["rf","lda"],#['rf',"lda","svm",LogisticRegression(max_iter=1000)],
+            dataset_balance = np.linspace(0.1, 0.9, 25),
+            classifiers = ['rf',"lda","svm",LogisticRegression(max_iter=1000)],
             metrics = ["roc_auc","accuracy", "f1", "balanced_accuracy"],
         )
         # fit and evaluate classifiers on dataset configurations
