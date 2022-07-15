@@ -8,7 +8,12 @@ from sklearn.model_selection import (
     StratifiedKFold,
     StratifiedGroupKFold,
 )
-from sklearn.metrics import SCORERS
+from sklearn.metrics import (
+    accuracy_score,
+    balanced_accuracy_score,
+    f1_score,
+    roc_auc_score,
+)
 from sklearn.linear_model import LogisticRegression
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.svm import SVC
@@ -41,6 +46,8 @@ class Pipeline:
                               (set to 1 to run only one time)
         metrics (list): placeholder for backwards compatibility, the list of metrics to use. See
                         sklearn.metrics.SCORERS.keys())
+        single_balanced_split (bool): if True, only do a single cross-validation split with a balanced
+                                      hold-out test set
     """
 
     CLASSIFIERS: Dict[str, BaseEstimator] = {
@@ -62,7 +69,7 @@ class Pipeline:
         n_permutations: int = 100,
         rand_seed: int = 42,
         n_init: int = 10,
-        metrics: List[str] = ["accuracy", "roc_auc", "f1", "balanced_accuracy"],
+        single_balanced_split: bool = False,
     ):
         # check x and y parameters
         x, y = np.asarray(x), np.asarray(y)
@@ -148,6 +155,12 @@ class Pipeline:
         # TODO need to remove the metrics parameter if we don't use it and leave a placeholder for older code.
         self.metrics = ["accuracy", "roc_auc", "f1", "balanced_accuracy"]
 
+        if single_balanced_split and groups is None:
+            self.holdout_cv = StratifiedKFold(n_splits=10)
+        elif single_balanced_split:
+            self.holdout_cv = StratifiedGroupKFold(n_splits=10)
+        self.single_balanced_split = single_balanced_split
+
         # set random seed
         self.seed = rand_seed
 
@@ -208,6 +221,33 @@ class Pipeline:
                 self.x, self.y, self.groups
             )
 
+            if self.single_balanced_split:
+                holdout_train_idxs, holdout_test_idxs = next(
+                    self.holdout_cv.split(shuffle_x, shuffle_y, shuffle_groups)
+                )
+                # create holdout test set
+                holdout_x_test = shuffle_x[holdout_test_idxs]
+                holdout_y_test = shuffle_y[holdout_test_idxs]
+                holdout_groups_test = (
+                    None
+                    if shuffle_groups is None
+                    else shuffle_groups[holdout_test_idxs]
+                )
+                # create train set
+                shuffle_x = shuffle_x[holdout_train_idxs]
+                shuffle_y = shuffle_y[holdout_train_idxs]
+                shuffle_groups = (
+                    None
+                    if shuffle_groups is None
+                    else shuffle_groups[holdout_train_idxs]
+                )
+
+                # make sure the test set is balanced
+                n_per_class_test = np.unique(holdout_y_test, return_counts=True)[1]
+                assert (
+                    n_per_class_test[0] == n_per_class_test
+                ).all(), "the hold-out test set is unbalanced"
+
             # nested loops over data configurations, classifiers and metrics
             for dset_balance in self.dataset_balance:
                 results[nr_init][dset_balance] = {}
@@ -250,77 +290,110 @@ class Pipeline:
                             )
                         )
 
-                        # only run the permutation test for the first  interation
-                        if nr_init == 0:
-                            # run a permutation test for the current combination of
-                            # imbalance, sample size, classifier and metric
-                            output = classification(
-                                clone(clf),
-                                self.cross_validation,
-                                curr_x,
-                                curr_y,
-                                groups=curr_groups,
-                                perm=self.n_permutations
-                                if self.n_permutations != 0
-                                else None,
-                                n_jobs=-1,
-                            )
-                        # don't run permutation test for other itertations
-                        elif nr_init > 0:
-                            # we don't have a p-value if the number of permutations is zero
-                            output = classification(
-                                clone(clf),
-                                self.cross_validation,
-                                curr_x,
-                                curr_y,
-                                groups=curr_groups,
-                                perm=None,
-                                n_jobs=-1,
-                            )
+                        if self.single_balanced_split:
+                            curr_clf = clone(clf)
+                            curr_clf.fit(curr_x, curr_y)
 
-                        # store current results
-                        results[nr_init][dset_balance][dset_size][clf_name][
-                            "accuracy"
-                        ] = (
-                            output["acc_score"],
-                            output["acc_pvalue"]
-                            if "acc_pvalue" in output.keys()
-                            else None,
-                            np.nanmean(output["acc_pscores"])
-                            if "acc_pscores" in output.keys()
-                            else None,
-                        )
-                        results[nr_init][dset_balance][dset_size][clf_name][
-                            "roc_auc"
-                        ] = (
-                            output["auc_score"],
-                            output["auc_pvalue"]
-                            if "auc_pvalue" in output.keys()
-                            else None,
-                            np.nanmean(output["auc_pscores"])
-                            if "auc_pscores" in output.keys()
-                            else None,
-                        )
-                        results[nr_init][dset_balance][dset_size][clf_name][
-                            "balanced_accuracy"
-                        ] = (
-                            output["bacc_score"],
-                            output["bacc_pvalue"]
-                            if "bacc_pvalue" in output.keys()
-                            else None,
-                            np.nanmean(output["bacc_pscores"])
-                            if "bacc_pscores" in output.keys()
-                            else None,
-                        )
-                        results[nr_init][dset_balance][dset_size][clf_name]["f1"] = (
-                            output["f1_score"],
-                            output["f1_pvalue"]
-                            if "f1_pvalue" in output.keys()
-                            else None,
-                            np.nanmean(output["f1_pscores"])
-                            if "f1_pscores" in output.keys()
-                            else None,
-                        )
+                            # predict on the holdout set
+                            y_test = holdout_y_test
+                            y_pred = curr_clf.predict_proba(holdout_x_test)[:, 1]
+
+                            # compute metrics
+                            try:
+                                roc_auc = roc_auc_score(y_test, y_pred)
+                            except:
+                                roc_auc = np.nan
+                            y_pred = (y_pred > 0.5).astype(int)
+                            f1 = f1_score(y_test, y_pred)
+                            balanced_accuracy = balanced_accuracy_score(y_test, y_pred)
+                            accuracy = accuracy_score(y_test, y_pred)
+
+                            # store test scores
+                            curr_results_dict = results[nr_init][dset_balance][
+                                dset_size
+                            ][clf_name]
+                            curr_results_dict["accuracy"] = (accuracy, None, None)
+                            curr_results_dict["roc_auc"] = (roc_auc, None, None)
+                            curr_results_dict["balanced_accuracy"] = (
+                                balanced_accuracy,
+                                None,
+                                None,
+                            )
+                            curr_results_dict["f1"] = (f1, None, None)
+                        else:
+                            # only run the permutation test for the first  interation
+                            if nr_init == 0:
+                                # run a permutation test for the current combination of
+                                # imbalance, sample size, classifier and metric
+                                output = classification(
+                                    clone(clf),
+                                    self.cross_validation,
+                                    curr_x,
+                                    curr_y,
+                                    groups=curr_groups,
+                                    perm=self.n_permutations
+                                    if self.n_permutations != 0
+                                    else None,
+                                    n_jobs=-1,
+                                )
+                            # don't run permutation test for other itertations
+                            elif nr_init > 0:
+                                # we don't have a p-value if the number of permutations is zero
+                                output = classification(
+                                    clone(clf),
+                                    self.cross_validation,
+                                    curr_x,
+                                    curr_y,
+                                    groups=curr_groups,
+                                    perm=None,
+                                    n_jobs=-1,
+                                )
+
+                            # store current results
+                            results[nr_init][dset_balance][dset_size][clf_name][
+                                "accuracy"
+                            ] = (
+                                output["acc_score"],
+                                output["acc_pvalue"]
+                                if "acc_pvalue" in output.keys()
+                                else None,
+                                np.nanmean(output["acc_pscores"])
+                                if "acc_pscores" in output.keys()
+                                else None,
+                            )
+                            results[nr_init][dset_balance][dset_size][clf_name][
+                                "roc_auc"
+                            ] = (
+                                output["auc_score"],
+                                output["auc_pvalue"]
+                                if "auc_pvalue" in output.keys()
+                                else None,
+                                np.nanmean(output["auc_pscores"])
+                                if "auc_pscores" in output.keys()
+                                else None,
+                            )
+                            results[nr_init][dset_balance][dset_size][clf_name][
+                                "balanced_accuracy"
+                            ] = (
+                                output["bacc_score"],
+                                output["bacc_pvalue"]
+                                if "bacc_pvalue" in output.keys()
+                                else None,
+                                np.nanmean(output["bacc_pscores"])
+                                if "bacc_pscores" in output.keys()
+                                else None,
+                            )
+                            results[nr_init][dset_balance][dset_size][clf_name][
+                                "f1"
+                            ] = (
+                                output["f1_score"],
+                                output["f1_pvalue"]
+                                if "f1_pvalue" in output.keys()
+                                else None,
+                                np.nanmean(output["f1_pscores"])
+                                if "f1_pscores" in output.keys()
+                                else None,
+                            )
 
                         # update the progress bar
                         pbar.update()
