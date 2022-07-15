@@ -8,6 +8,7 @@ from sklearn.ensemble import RandomForestClassifier
 import os
 import numpy as np
 import sys
+import matplotlib.pyplot as plt
 
 from sklearn.model_selection import (
     KFold,
@@ -16,7 +17,7 @@ from sklearn.model_selection import (
 )
 cvsnames = ["KFold", "Stratified", "Stratified-Group"]
 cvs = [KFold(n_splits=5), StratifiedKFold(n_splits=5), StratifiedGroupKFold(n_splits=5)]
-
+single_balanced_split = True
 if len(sys.argv) > 1:
     print('cmd entry:', sys.argv)
     cvs_idx = int(sys.argv[-1])
@@ -32,6 +33,9 @@ for ccc in cvs_idx:
 
         pipeline_path=f'data/eeg_roi_{n_features}_{cvsnames[ccc]}.pickle'
         features_path =f"data/eeg_features_{n_features}.npy"
+
+        if single_balanced_split:
+            pipeline_path=pipeline_path.replace('.pickle','_single_balanced_split.pickle')
 
         if not os.path.isfile(features_path):
             x, y, groups = eegbci('data',roi=lambda x: x[0] in ['P','O'],n_features=n_features)
@@ -51,7 +55,8 @@ for ccc in cvs_idx:
                 classifiers = ["lda","svm",LogisticRegression(max_iter=1000),RandomForestClassifier(n_estimators=25)],
                 n_permutations = 100,
                 n_init = 10,
-                cross_validation=cvs[ccc]
+                cross_validation=cvs[ccc],
+                single_balanced_split=single_balanced_split
             )
             # fit and evaluate classifiers on dataset configurations
             pl.evaluate()
@@ -64,9 +69,18 @@ for ccc in cvs_idx:
 
             pl = pickle.load(open(pipeline_path,"rb"))
 
+        clfs = [key for key,val in viz.CLASSIFIERS.items()]
+        for clf in clfs:
+            viz.metric_balance(pl,clf,show=False)
+            fig = plt.gcf()
+            fig.savefig(pipeline_path.replace(".pickle",f"_{clf}.png"))
 
-    # clfs = [key for key,val in viz.CLASSIFIERS.items()]
-    # for clf in clfs:
-    #     viz.metric_balance(pl,clf)
+        viz.data_distribution(pl,show=False)
+        fig = plt.gcf()
+        fig.savefig(pipeline_path.replace(".pickle",f"_dist.png"))
 
-    # viz.data_distribution(pl)
+        # clfs = [key for key,val in viz.CLASSIFIERS.items()]
+        # for clf in clfs:
+        #     viz.metric_balance(pl,clf)
+
+        # viz.data_distribution(pl)
