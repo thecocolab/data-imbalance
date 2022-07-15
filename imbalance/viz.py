@@ -69,6 +69,7 @@ def metric_balance(
             curr_scores,
             linestyle="solid",
             color=f"C{idx_met}",
+            alpha=0.7,
         )[0]
 
         # fill the std area
@@ -77,7 +78,7 @@ def metric_balance(
             curr_scores - curr_scores_std,
             curr_scores + curr_scores_std,
             color=f"C{idx_met}",
-            alpha=0.5,
+            alpha=0.3,
         )
 
         # plot the chance level for the current classifier and metric
@@ -97,6 +98,7 @@ def metric_balance(
                 marker="*",
                 s=70,
                 color=f"C{idx_met}",
+                alpha=0.7,
             )
         except TypeError:
             pass
@@ -105,7 +107,7 @@ def metric_balance(
         if met not in metric_legend:
             metric_legend[METRIC[met]] = line
     # trick to get the chance level dotted line in the legend
-    metric_legend["Chance level"] = ax.plot([],[],linestyle="dotted",color="black")[0]
+    #metric_legend["Chance level"] = ax.plot([],[],linestyle="dotted",color="black")[0]
 
     # add annotations
     ax.set_xlabel("data balance")
