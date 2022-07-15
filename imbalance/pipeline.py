@@ -28,8 +28,6 @@ class Pipeline:
                              each sample (optional)
         classifiers (str, list): a list of strings or scikit-learn classifier instances
                                  (see Pipeline.CLASSIFIERS.keys())
-        metrics (list): a list of strings with metrics that should be compared (see
-                        sklearn.metrics.SCORERS.keys())
         cross_validation (CrossValidator): an instantiated scikit-learn cross validation
                                            strategy (if None, uses (Group)KFold with n=5)
         dataset_balance (array-like): sequence of balance ratios where 0 corresponds to
@@ -41,13 +39,15 @@ class Pipeline:
                               (set to 0 to disable permutation tests)
         n_init (int): number of reinitialisation to run for evaluating variance in datasplit
                               (set to 1 to run only one time)
+        metrics (list): placeholder for backwards compatibility, the list of metrics to use. See
+                        sklearn.metrics.SCORERS.keys())
     """
 
     CLASSIFIERS: Dict[str, BaseEstimator] = {
-        "lr": LogisticRegression,
-        "svm": SVC,
-        "lda": LinearDiscriminantAnalysis,
-        "rf": RandomForestClassifier,
+        "lr": LogisticRegression(),
+        "svm": SVC(),
+        "lda": LinearDiscriminantAnalysis(),
+        "rf": RandomForestClassifier(n_estimators=25),
     }
 
     def __init__(
@@ -56,13 +56,13 @@ class Pipeline:
         y: Sequence[int],
         groups: Optional[Sequence[int]] = None,
         classifiers: Union[str, BaseEstimator, List[Any]] = "lr",
-        metrics: List[str] = ["accuracy", "roc_auc", "f1", "balanced_accuracy"],
         cross_validation: BaseCrossValidator = None,
-        dataset_balance: Sequence[float] = [0.1, 0.3, 0.5, 0.7, 0.9],
+        dataset_balance: Sequence[float] = np.linspace(0.1, 0.9, 25)[1:-1],
         dataset_size: Union[str, Sequence[float]] = "full",
-        n_permutations: int = 0,
-        rand_seed: int = None,
-        n_init: int = 1,
+        n_permutations: int = 100,
+        rand_seed: int = 42,
+        n_init: int = 10,
+        metrics: List[str] = ["accuracy", "roc_auc", "f1", "balanced_accuracy"],
     ):
         # check x and y parameters
         x, y = np.asarray(x), np.asarray(y)
@@ -567,7 +567,7 @@ class Pipeline:
             f"unknown classifier {name}, choose from "
             f"{', '.join(Pipeline.CLASSIFIERS.keys())}"
         )
-        return Pipeline.CLASSIFIERS[name]()
+        return Pipeline.CLASSIFIERS[name]
 
     def _squeeze_dict(data: dict, keep=[]) -> dict:
         """Recursively removes dimensions from a nested dictionary, which only have a single
