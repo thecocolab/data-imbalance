@@ -21,7 +21,7 @@ if len(sys.argv) > 1:
     print('cmd entry:', sys.argv)
     cvs_idx = int(sys.argv[-1])
 else:
-    cvs_idx = 1
+    cvs_idx = 2 # because we have groups by default
 
 cv = cvs[cvs_idx]
 
