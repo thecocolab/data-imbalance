@@ -65,11 +65,14 @@ if __name__ == "__main__":
     x, y, groups = next(iter(dataloader))
     x = x[:, [1, 2]].mean(axis=1)  # averages the psd values for both gradiometers
     x = x[..., band]  # Only using the alpha frequency band. comment this line for multifeature.
-    x = x.numpy()
+    x = x.numpy()[..., np.newaxis]
 
-    for g in np.unique(groups):
-        group_idx = np.where(groups == g)[0]
-        x[group_idx] = scale(x[group_idx])
+    for feature in range(x.shape[-1]):
+        for e in range(102):
+            for g in np.unique(groups):
+                group_idx = np.where(groups == g)[0]
+                scaled = scale(x[group_idx, e])
+                x[group_idx, e] = scaled
 
     # running all classifiers and 102 sensor locations gives us
     Parallel(n_jobs=-1)(
