@@ -1,6 +1,6 @@
 import warnings
 from copy import copy
-from typing import Union, Optional
+from typing import Union, Optional, List
 import numpy as np
 from matplotlib import pyplot as plt
 import seaborn as sns
@@ -24,11 +24,19 @@ METRIC = {
 }
 
 def metric_balance(
-    pl: Pipeline, classifier: str, p_threshold: float = 0.01,
-    ax: plt.Axes = None, show: bool = True, show_leg: bool = True,
-    ignore_metrics : Union[list,str] = [], enforce_ylim: bool = True,
-    chance_leg: bool = True, show_title: bool = True,
-):
+    pl: Pipeline,
+    classifier: str,
+    p_threshold: float = 0.01,
+    ax: plt.Axes = None,
+    show: bool = True,
+    show_leg: bool = True,
+    ignore_metrics : Union[list,str] = [],
+    enforce_ylim: bool = True,
+    color_offset: int = 0,
+    reset_colors: bool = False,
+    chance_leg: bool = True,
+    show_title: bool = True,
+) -> List[plt.Axes]:
     """Visualizes classification scores of different metrics and classifiers across a range
     of imbalance ratios. If you want to add something to the plot, set show to False and
     use plt.xyz after calling this function.
@@ -42,6 +50,8 @@ def metric_balance(
         show_leg (bool): whether to add a legend or not
         ignore_metrics (list, str): name(s) of metrics to ignore in the figure
         enforce_ylim (bool): if True, set the y-limits to (0, 1)
+        color_offset (int): offset added to the color index for each classifier
+        reset_colors (bool): if True, start skip ignored metrics in the color circle
     """
     _check_pipeline(pl)
 
@@ -62,11 +72,14 @@ def metric_balance(
 
     clf = CLASSIFIERS[classifier]
 
-
+    line_plots = []
     for idx_met, met in enumerate(scores[list(scores.keys())[0]][clf].keys()):
         # potentially ignore some metrics
         if met in ignore_metrics:
             continue
+
+        # compute the index of the current color
+        color_idx = len(line_plots) if reset_colors else idx_met
 
         # get the current scores and p-values as lists
         balances = np.array(list(scores.keys()))
@@ -81,16 +94,17 @@ def metric_balance(
             balances,
             curr_scores,
             linestyle="solid",
-            color=f"C{idx_met}",
+            color=f"C{color_idx + color_offset}",
             alpha=0.5,
         )[0]
+        line_plots.append(line)
 
         # fill the std area
         stds = ax.fill_between(
             balances,
             curr_scores - curr_scores_std,
             curr_scores + curr_scores_std,
-            color=f"C{idx_met}",
+            color=f"C{color_idx + color_offset}",
             alpha=0.2,
         )
 
@@ -99,7 +113,7 @@ def metric_balance(
             balances,
             curr_perm_score,
             linestyle="dotted",
-            color=f"C{idx_met}",
+            color=f"C{color_idx + color_offset}",
         )[0]
 
         # visualize statistical significance
@@ -110,7 +124,7 @@ def metric_balance(
                 curr_scores[mask],
                 marker="*",
                 s=70,
-                color=f"C{idx_met}",
+                color=f"C{color_idx + color_offset}",
             )
         except TypeError:
             pass
@@ -146,6 +160,7 @@ def metric_balance(
     ax.tick_params(labelsize=16)
     if show:
         plt.show()
+    return line_plots
 
 def plot_different_n(
     pl: Pipeline, classifier: str, metric: str , ax: plt.Axes = None,
