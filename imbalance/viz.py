@@ -158,6 +158,7 @@ def plot_different_n(
             curr_scores,
             linestyle="solid",
             color=f"C{idx_size}",
+            alpha=0.5,
         )[0]
 
         # fill the std area
@@ -166,7 +167,7 @@ def plot_different_n(
             curr_scores - curr_scores_std,
             curr_scores + curr_scores_std,
             color=f"C{idx_size}",
-            alpha=0.5,
+            alpha=0.2,
         )
 
         # add current metric to the legend
@@ -188,22 +189,28 @@ def plot_different_n(
         plt.show()
 
 def plot_different_cvs(
-    pls: list, classifier: str, metric: str , ax: plt.Axes = None, show: bool = True, show_leg: bool = True,
+    pls: dict, classifier: str, metric: str , ax: plt.Axes = None, show: bool = True, show_leg: bool = True,
 ):
-    """Visualizes classification scores of different sizes of datasets.
+    """Visualizes classification scores of different cross-validation schemes.
 
     Args:
-        pls (list of Pipeline objects): a list of Pipeline objects called with different cross-validators, which have all been evaluated
-        classifier (string): the classifier within the pipeline object to plot
-        ax (Axes): if provided, plot in ax instead of creating a new figure
-        show (bool): whether the function calls plt.show() or not
+        pls (dict of Pipeline objects): a dict of Pipeline objects called with
+        different cross-validators, which have all been evaluated.
+        classifier (string): the classifier within the pipeline object to plot.
+        ax (Axes): if provided, plot in ax instead of creating a new figure.
+        show (bool): whether the function calls plt.show() or not.
     """
-    _check_pipeline(pl)
+    for cv_name in pls:
+        _check_pipeline(pls[cv_name])
 
     # extract relevant results from the pipeline
-    scores = pl.get(dataset_size="all", result_type="score")
-    scores_std = pl.get(dataset_size="all", result_type="score_std")
-    dataset_size = pl.dataset_size
+    scores_list = []
+    scores_std_list = []
+    cross_val_names = []
+    for cv_name in pls.keys():
+        scores_list.append(pls[cv_name].get(dataset_size="all", result_type="score"))
+        scores_std_list.append(pls[cv_name].get(dataset_size="all", result_type="score_std"))
+        cross_val_names.append(cv_name)
     # start the figure
     if ax is None:
         fig, ax = plt.subplots()
@@ -212,18 +219,20 @@ def plot_different_cvs(
 
     clf = CLASSIFIERS[classifier]
 
-    for idx_size, size in enumerate(dataset_size):
+    for idx_cv, cv_name in enumerate(pls):
         # get the current scores and p-values as lists
-        balances = np.array(list(scores.keys()))
-        curr_scores = np.array([scores[bal][size][clf][metric] for bal in balances])
-        curr_scores_std = np.array([scores_std[bal][size][clf][metric] for bal in balances])
+        # TODO : find a better way to remove the size level
+        balances = np.array(list(scores_list[idx_cv].keys()))
+        curr_scores = np.array([scores_list[idx_cv][bal][1.0][clf][metric] for bal in balances])
+        curr_scores_std = np.array([scores_std_list[idx_cv][bal][1.0][clf][metric] for bal in balances])
 
         # plot the scores for the current classifier and metric
         line = ax.plot(
             balances,
             curr_scores,
             linestyle="solid",
-            color=f"C{idx_size}",
+            color=f"C{idx_cv}",
+            alpha=0.5,
         )[0]
 
         # fill the std area
@@ -231,13 +240,13 @@ def plot_different_cvs(
             balances,
             curr_scores - curr_scores_std,
             curr_scores + curr_scores_std,
-            color=f"C{idx_size}",
-            alpha=0.5,
+            color=f"C{idx_cv}",
+            alpha=0.2,
         )
 
         # add current metric to the legend
-        if size not in metric_legend:
-            metric_legend[size] = line
+        if cv_name not in metric_legend:
+            metric_legend[cv_name] = line
 
     # add annotations
     ax.set_xlabel("data balance")
