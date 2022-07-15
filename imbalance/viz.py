@@ -187,6 +187,72 @@ def plot_different_n(
     if show:
         plt.show()
 
+def plot_different_cvs(
+    pls: list, classifier: str, metric: str , ax: plt.Axes = None, show: bool = True, show_leg: bool = True,
+):
+    """Visualizes classification scores of different sizes of datasets.
+
+    Args:
+        pls (list of Pipeline objects): a list of Pipeline objects called with different cross-validators, which have all been evaluated
+        classifier (string): the classifier within the pipeline object to plot
+        ax (Axes): if provided, plot in ax instead of creating a new figure
+        show (bool): whether the function calls plt.show() or not
+    """
+    _check_pipeline(pl)
+
+    # extract relevant results from the pipeline
+    scores = pl.get(dataset_size="all", result_type="score")
+    scores_std = pl.get(dataset_size="all", result_type="score_std")
+    dataset_size = pl.dataset_size
+    # start the figure
+    if ax is None:
+        fig, ax = plt.subplots()
+
+    metric_legend = {}
+
+    clf = CLASSIFIERS[classifier]
+
+    for idx_size, size in enumerate(dataset_size):
+        # get the current scores and p-values as lists
+        balances = np.array(list(scores.keys()))
+        curr_scores = np.array([scores[bal][size][clf][metric] for bal in balances])
+        curr_scores_std = np.array([scores_std[bal][size][clf][metric] for bal in balances])
+
+        # plot the scores for the current classifier and metric
+        line = ax.plot(
+            balances,
+            curr_scores,
+            linestyle="solid",
+            color=f"C{idx_size}",
+        )[0]
+
+        # fill the std area
+        stds = ax.fill_between(
+            balances,
+            curr_scores - curr_scores_std,
+            curr_scores + curr_scores_std,
+            color=f"C{idx_size}",
+            alpha=0.5,
+        )
+
+        # add current metric to the legend
+        if size not in metric_legend:
+            metric_legend[size] = line
+
+    # add annotations
+    ax.set_xlabel("data balance")
+    ax.set_ylabel("score")
+    ax.set_title(classifier + '__' + metric)
+
+    if show_leg is True:
+        ax.legend(
+            list(metric_legend.values()),
+            list(metric_legend.keys()),
+            ncol=1,
+        )
+    if show:
+        plt.show()
+
 
 def data_distribution(pl: Pipeline, ax: Optional[plt.Axes] = None, show: bool = True, show_leg: bool = True):
     """Plots the data distribution of the input data. If x is single-feature, creates a density plot. If
