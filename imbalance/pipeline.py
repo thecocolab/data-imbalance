@@ -45,7 +45,7 @@ class Pipeline:
 
     CLASSIFIERS: Dict[str, BaseEstimator] = {
         "lr": LogisticRegression(),
-        "svm": SVC(),
+        "svm": SVC(probability=True),
         "lda": LinearDiscriminantAnalysis(),
         "rf": RandomForestClassifier(n_estimators=25),
     }
