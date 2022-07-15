@@ -8,13 +8,29 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 import os
 import numpy as np
+import sys
 
+from sklearn.model_selection import (
+    KFold,
+    StratifiedKFold,
+    StratifiedGroupKFold,
+)
+cvsnames = ["KFold", "Stratified", "Stratified-Group"]
+cvs = [KFold(n_splits=5), StratifiedKFold(n_splits=5), StratifiedGroupKFold(n_splits=5)]
+
+if len(sys.argv) > 1:
+    print('cmd entry:', sys.argv)
+    cvs_idx = int(sys.argv[-1])
+else:
+    cvs_idx = 1
+
+cv = cvs[cvs_idx]
 
 for n_features in ['single','multi']:
     chans = get_info().ch_names
 
-    pipeline_path=f'data/eeg_roi_{n_features}.pickle'
-    features_path =f"data/eeg_features_{n_features}.npy"
+    pipeline_path=f'data/eeg_roi_{n_features}_{cvsnames[cvs_idx]}.pickle'
+    features_path =f"data/eeg_features_{n_features}_{cvsnames[cvs_idx]}.npy"
 
     if not os.path.isfile(features_path):
         x, y, groups = eegbci('data',roi=lambda x: x[0] in ['P','O'],n_features=n_features)
