@@ -5,7 +5,7 @@ from typing import Tuple, Optional
 def gaussian_binary(
     mean_distance: float = 2,
     standard_deviation: float = 1,
-    n_samples_per_class: int = 1000,
+    n_samples_per_class: int = 500,
     n_features: int = 1,
     n_groups: int = 1,
     rand_seed: int = 0,

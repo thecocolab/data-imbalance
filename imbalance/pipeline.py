@@ -5,8 +5,8 @@ import numpy as np
 from sklearn.base import clone, BaseEstimator
 from sklearn.model_selection import (
     BaseCrossValidator,
-    KFold,
-    GroupKFold,
+    StratifiedKFold,
+    StratifiedGroupKFold,
 )
 from sklearn.metrics import SCORERS
 from sklearn.linear_model import LogisticRegression
@@ -66,10 +66,7 @@ class Pipeline:
     ):
         # check x and y parameters
         x, y = np.asarray(x), np.asarray(y)
-        assert x.ndim in [
-            1,
-            2,
-        ], f"x must be 1- or 2-dimensional, got {x.ndim}D"
+        assert x.ndim in [1, 2], f"x must be 1- or 2-dimensional, got {x.ndim}D"
         assert (
             y.ndim == 1 and y.dtype == int
         ), f"y must be a 1D integer array, got {y.ndim}D with type {y.dtype}"
@@ -125,9 +122,9 @@ class Pipeline:
 
         # initialize cross-validation
         if cross_validation is None and self.groups is None:
-            cross_validation = KFold(n_splits=5)
+            cross_validation = StratifiedKFold(n_splits=5)
         elif cross_validation is None:
-            cross_validation = GroupKFold(n_splits=5)
+            cross_validation = StratifiedGroupKFold(n_splits=5)
         self.cross_validation = cross_validation
 
         # store balance and dataset size ratios
