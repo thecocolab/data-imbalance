@@ -57,7 +57,7 @@ class Pipeline:
         groups: Optional[Sequence[int]] = None,
         classifiers: Union[str, BaseEstimator, List[Any]] = "lr",
         cross_validation: BaseCrossValidator = None,
-        dataset_balance: Sequence[float] = np.linspace(0.1, 0.9, 25)[1:-1],
+        dataset_balance: Sequence[float] = np.linspace(0.1, 0.9, 25),
         dataset_size: Union[str, Sequence[float]] = "full",
         n_permutations: int = 100,
         rand_seed: int = 42,
@@ -66,7 +66,10 @@ class Pipeline:
     ):
         # check x and y parameters
         x, y = np.asarray(x), np.asarray(y)
-        assert x.ndim in [1, 2,], f"x must be 1- or 2-dimensional, got {x.ndim}D"
+        assert x.ndim in [
+            1,
+            2,
+        ], f"x must be 1- or 2-dimensional, got {x.ndim}D"
         assert (
             y.ndim == 1 and y.dtype == int
         ), f"y must be a 1D integer array, got {y.ndim}D with type {y.dtype}"
@@ -196,7 +199,7 @@ class Pipeline:
 
         # initialize result dictionary
         results = {}
-        avg_results = {} # results averaged over reinitialisation
+        avg_results = {}  # results averaged over reinitialisation
 
         if self.seed is not None:
             np.random.seed(self.seed)
@@ -260,7 +263,9 @@ class Pipeline:
                                 curr_x,
                                 curr_y,
                                 groups=curr_groups,
-                                perm=self.n_permutations if self.n_permutations != 0 else None,
+                                perm=self.n_permutations
+                                if self.n_permutations != 0
+                                else None,
                                 n_jobs=-1,
                             )
                         # don't run permutation test for other itertations
@@ -277,25 +282,47 @@ class Pipeline:
                             )
 
                         # store current results
-                        results[nr_init][dset_balance][dset_size][clf_name]["accuracy"] = (
-                            output['acc_score'],
-                            output['acc_pvalue'] if 'acc_pvalue' in output.keys() else None,
-                            np.nanmean(output['acc_pscores']) if 'acc_pscores' in output.keys() else None,
+                        results[nr_init][dset_balance][dset_size][clf_name][
+                            "accuracy"
+                        ] = (
+                            output["acc_score"],
+                            output["acc_pvalue"]
+                            if "acc_pvalue" in output.keys()
+                            else None,
+                            np.nanmean(output["acc_pscores"])
+                            if "acc_pscores" in output.keys()
+                            else None,
                         )
-                        results[nr_init][dset_balance][dset_size][clf_name]["roc_auc"] = (
-                            output['auc_score'],
-                            output['auc_pvalue'] if 'auc_pvalue' in output.keys() else None,
-                            np.nanmean(output['auc_pscores']) if 'auc_pscores' in output.keys() else None,
+                        results[nr_init][dset_balance][dset_size][clf_name][
+                            "roc_auc"
+                        ] = (
+                            output["auc_score"],
+                            output["auc_pvalue"]
+                            if "auc_pvalue" in output.keys()
+                            else None,
+                            np.nanmean(output["auc_pscores"])
+                            if "auc_pscores" in output.keys()
+                            else None,
                         )
-                        results[nr_init][dset_balance][dset_size][clf_name]["balanced_accuracy"] = (
-                            output['bacc_score'],
-                            output['bacc_pvalue'] if 'bacc_pvalue' in output.keys() else None,
-                            np.nanmean(output['bacc_pscores']) if 'bacc_pscores' in output.keys() else None,
+                        results[nr_init][dset_balance][dset_size][clf_name][
+                            "balanced_accuracy"
+                        ] = (
+                            output["bacc_score"],
+                            output["bacc_pvalue"]
+                            if "bacc_pvalue" in output.keys()
+                            else None,
+                            np.nanmean(output["bacc_pscores"])
+                            if "bacc_pscores" in output.keys()
+                            else None,
                         )
                         results[nr_init][dset_balance][dset_size][clf_name]["f1"] = (
-                            output['f1_score'],
-                            output['f1_pvalue'] if 'f1_pvalue' in output.keys() else None,
-                            np.nanmean(output['f1_pscores']) if 'f1_pscores' in output.keys() else None,
+                            output["f1_score"],
+                            output["f1_pvalue"]
+                            if "f1_pvalue" in output.keys()
+                            else None,
+                            np.nanmean(output["f1_pscores"])
+                            if "f1_pscores" in output.keys()
+                            else None,
                         )
 
                         # update the progress bar
@@ -315,12 +342,20 @@ class Pipeline:
 
                     for metric in self.metrics:
                         # store results from first iteration only
-                        pvalue = results[0][dset_balance][dset_size][clf_name][metric][1]
-                        perm_score = results[0][dset_balance][dset_size][clf_name][metric][2]
+                        pvalue = results[0][dset_balance][dset_size][clf_name][metric][
+                            1
+                        ]
+                        perm_score = results[0][dset_balance][dset_size][clf_name][
+                            metric
+                        ][2]
 
                         scores = []
                         for nr_init in range(self.n_init):
-                            scores.append(results[nr_init][dset_balance][dset_size][clf_name][metric][0])
+                            scores.append(
+                                results[nr_init][dset_balance][dset_size][clf_name][
+                                    metric
+                                ][0]
+                            )
                         # average the score over all iterations
                         score_mean = np.nanmean(scores)
                         score_std = np.std(scores)
@@ -329,16 +364,13 @@ class Pipeline:
                             score_mean,
                             score_std,
                             pvalue,
-                            perm_score
+                            perm_score,
                         )
 
                         # update the progress bar
                         pbar.update()
 
-
         self.scores = avg_results
-
-
 
     def get(
         self,
@@ -486,7 +518,11 @@ class Pipeline:
                 groups_x.append(group_x)
                 groups_y.append(group_y)
                 groups_groups.append([group] * len(group_y))
-            return np.concatenate(groups_x), np.concatenate(groups_y), np.concatenate(groups_groups)
+            return (
+                np.concatenate(groups_x),
+                np.concatenate(groups_y),
+                np.concatenate(groups_groups),
+            )
 
         else:
             # make sure we start with a balanced dataset
@@ -507,7 +543,9 @@ class Pipeline:
             n1 = int(class_counts[1] * alpha)
 
             # rebalance data
-            idxs = np.concatenate([np.where(y == unique_y[0])[0][:n0], np.where(y == unique_y[1])[0][:n1]])
+            idxs = np.concatenate(
+                [np.where(y == unique_y[0])[0][:n0], np.where(y == unique_y[1])[0][:n1]]
+            )
             return x[idxs], y[idxs], None if groups is None else groups[idxs]
 
     def limit_dataset_size(
