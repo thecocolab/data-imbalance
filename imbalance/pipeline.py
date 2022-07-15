@@ -62,7 +62,6 @@ class Pipeline:
         n_permutations: int = 100,
         rand_seed: int = 42,
         n_init: int = 10,
-        metrics: List[str] = ["accuracy", "roc_auc", "f1", "balanced_accuracy"],
     ):
         # check x and y parameters
         x, y = np.asarray(x), np.asarray(y)
