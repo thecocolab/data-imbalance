@@ -34,6 +34,8 @@ def metric_balance(
     enforce_ylim: bool = True,
     color_offset: int = 0,
     reset_colors: bool = False,
+    chance_leg: bool = True,
+    show_title: bool = True,
 ) -> List[plt.Axes]:
     """Visualizes classification scores of different metrics and classifiers across a range
     of imbalance ratios. If you want to add something to the plot, set show to False and
@@ -93,6 +95,7 @@ def metric_balance(
             curr_scores,
             linestyle="solid",
             color=f"C{color_idx + color_offset}",
+            alpha=0.5,
         )[0]
         line_plots.append(line)
 
@@ -102,7 +105,7 @@ def metric_balance(
             curr_scores - curr_scores_std,
             curr_scores + curr_scores_std,
             color=f"C{color_idx + color_offset}",
-            alpha=0.5,
+            alpha=0.2,
         )
 
         # plot the chance level for the current classifier and metric
@@ -129,13 +132,19 @@ def metric_balance(
         # add current metric to the legend
         if met not in metric_legend:
             metric_legend[METRIC[met]] = line
+
     # trick to get the chance level dotted line in the legend
-    metric_legend["Chance level"] = ax.plot([],[],linestyle="dotted",color="black")[0]
+    if chance_leg:
+        metric_legend["Chance level"] = ax.plot([],[],
+                                                linestyle="dotted",
+                                                color="black")[0]
 
     # add annotations
-    ax.set_xlabel("data balance")
-    ax.set_ylabel("score")
-    ax.set_title(classifier)
+
+    #ax.set_ylabel("score")
+    if show_title:
+        ax.set_title(CLASSIFIERS[classifier], size=18)
+
     if enforce_ylim:
         ax.set_ylim(0, 1)
 
@@ -144,13 +153,18 @@ def metric_balance(
             list(metric_legend.values()) + list(classifier_legend.values()),
             list(metric_legend.keys()) + list(classifier_legend.keys()),
             ncol=1,
+            prop={'size': 14},
         )
+        ax.set_xlabel("Balance", size=16)
+
+    ax.tick_params(labelsize=16)
     if show:
         plt.show()
     return line_plots
 
 def plot_different_n(
-    pl: Pipeline, classifier: str, metric: str , ax: plt.Axes = None, show: bool = True, show_leg: bool = True,
+    pl: Pipeline, classifier: str, metric: str , ax: plt.Axes = None,
+    show: bool = True, show_leg: bool = True, show_title: bool = True,
 ):
     """Visualizes classification scores of different sizes of datasets.
 
@@ -203,21 +217,28 @@ def plot_different_n(
             metric_legend[size] = line
 
     # add annotations
-    ax.set_xlabel("data balance")
-    ax.set_ylabel("score")
-    ax.set_title(classifier + '__' + metric)
+
+    #ax.set_ylabel("score")
+    if show_title:
+        ax.set_title(CLASSIFIERS[classifier] + ' ' + METRIC[metric], size=18)
 
     if show_leg is True:
         ax.legend(
             list(metric_legend.values()),
             list(metric_legend.keys()),
             ncol=1,
+            prop={'size': 14}
         )
+        ax.set_xlabel("Balance", size=16)
+
+    ax.tick_params(labelsize=16)
+
     if show:
         plt.show()
 
 def plot_different_cvs(
-    pls: dict, classifier: str, metric: str , ax: plt.Axes = None, show: bool = True, show_leg: bool = True,
+    pls: dict, classifier: str, metric: str , ax: plt.Axes = None,
+    show: bool = True, show_leg: bool = True, show_title: bool = True,
 ):
     """Visualizes classification scores of different cross-validation schemes.
 
@@ -277,16 +298,20 @@ def plot_different_cvs(
             metric_legend[cv_name] = line
 
     # add annotations
-    ax.set_xlabel("data balance")
-    ax.set_ylabel("score")
-    ax.set_title(classifier + '__' + metric)
+    #ax.set_ylabel("score")
+    if show_title:
+        ax.set_title(CLASSIFIERS[classifier] + ' ' + METRIC[metric], size=18)
 
     if show_leg is True:
         ax.legend(
             list(metric_legend.values()),
             list(metric_legend.keys()),
             ncol=1,
+            prop={'size': 14}
         )
+        ax.set_xlabel("Balance", size=16)
+    ax.tick_params(labelsize=16)
+
     if show:
         plt.show()
 
@@ -317,26 +342,28 @@ def data_distribution(pl: Pipeline, ax: Optional[plt.Axes] = None, show: bool = 
     else:
         # multi-feature TSNE plots
         _single_feature_distribution(x, y, ax, show_leg, class_names=class_names)
-
+    ax.tick_params(labelsize=16)
     if show:
         plt.show()
 
 
 def _single_feature_distribution(x: np.ndarray, y: np.ndarray, ax: plt.Axes, show_leg: bool = True, class_names: list = None):
     if class_names is None:
-        class_names = ["class 0", "class 1"]
+        class_names = ["Class 0", "Class 1"]
     # create density plots
     sns.kdeplot(x[y == 0, 0], shade=True, color="C0", ax=ax, label=class_names[0])
     sns.kdeplot(x[y == 1, 0], shade=True, color="C1", ax=ax, label=class_names[1])
     # add annotations
-    ax.set_xlabel("variable")
+
+    ax.set_ylabel("")
     if show_leg:
-        ax.legend()
+        ax.legend(prop={'size': 14})
+        ax.set_xlabel("Variable", size=16)
 
 
 def _multi_feature_distribution(x: np.ndarray, y: np.ndarray, ax: plt.Axes, show_leg: bool = True, class_names: list = None):
     if class_names is None:
-        class_names = ["class 0", "class 1"]
+        class_names = ["Class 0", "Class 1"]
     with warnings.catch_warnings():
         # ignore a TSNE FutureWarning about PCA initialization
         warnings.filterwarnings("ignore", category=FutureWarning)
@@ -345,10 +372,11 @@ def _multi_feature_distribution(x: np.ndarray, y: np.ndarray, ax: plt.Axes, show
     ax.scatter(*x[y == 0].T, label=class_names[0])
     ax.scatter(*x[y == 1].T, label=class_names[1])
     # add annotations
-    ax.set_xlabel("component 0")
-    ax.set_ylabel("component 1")
+
     if show_leg:
-        ax.legend()
+        ax.legend(prop={'size': 14})
+        ax.set_xlabel("Component 0", size=14)
+        ax.set_ylabel("Component 1", size=14)
 
 
 def _check_pipeline(pl: Pipeline):
