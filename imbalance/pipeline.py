@@ -709,7 +709,7 @@ if __name__ == "__main__":
     x, y, groups = gaussian_binary(n_groups=5)
 
     # initialize the pipeline
-    pl = Pipeline(x, y, groups)
+    pl = Pipeline(x, y, groups, n_permutations=1)
     # fit and evaluate the classifiers with different configurations
     pl.evaluate()
     # print classification results
