@@ -4,6 +4,7 @@ from imbalance.pipeline import Pipeline
 from imbalance import viz
 import pickle
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 import os
 import numpy as np
 
@@ -24,9 +25,9 @@ if not os.path.isfile(pipeline_path):
         y,
         groups,
         dataset_balance = np.linspace(0.1, 0.9, 25),
-        classifiers = ["lda","svm",LogisticRegression(max_iter=1000)],#,'rf'],
-        n_permutations = 10,
-        n_init = 2,
+        classifiers = ["lda","svm",LogisticRegression(max_iter=1000),RandomForestClassifier(n_estimators=25)],#,'rf'],
+        n_permutations = 0,
+        n_init = 10,
     )
     # fit and evaluate classifiers on dataset configurations
     pl.evaluate()
@@ -36,3 +37,7 @@ if not os.path.isfile(pipeline_path):
         pickle.dump(pl, handle, protocol=pickle.HIGHEST_PROTOCOL)
 else:
     pl = pickle.load(open(pipeline_path,"rb"))
+
+clfs = [key for key,val in viz.CLASSIFIERS.items()]
+for clf in clfs:
+    viz.metric_balance(pl,clf)
