@@ -24,7 +24,7 @@ METRIC = {
 }
 
 def metric_balance(
-    pl: Pipeline, classifier: str ,p_threshold: float = 0.01, ax: plt.Axes = None, show: bool = True, show_leg: bool = True,
+    pl: Pipeline, classifier: str, p_threshold: float = 0.01, ax: plt.Axes = None, show: bool = True, show_leg: bool = True, ignore_metrics : Union[list,str] = [], enforce_ylim: bool = True,
 ):
     """Visualizes classification scores of different metrics and classifiers across a range
     of imbalance ratios. If you want to add something to the plot, set show to False and
@@ -36,8 +36,14 @@ def metric_balance(
         p_threshold (float): threshold of statistical significance
         ax (Axes): if provided, plot in ax instead of creating a new figure
         show (bool): whether the function calls plt.show() or not
+        show_leg (bool): whether to add a legend or not
+        ignore_metrics (list, str): name(s) of metrics to ignore in the figure
+        enforce_ylim (bool): if True, set the y-limits to (0, 1)
     """
     _check_pipeline(pl)
+
+    if not isinstance(ignore_metrics, list):
+        ignore_metrics = [ignore_metrics]
 
     # extract relevant results from the pipeline
     scores = pl.get(dataset_size="max", result_type="score")
@@ -55,6 +61,10 @@ def metric_balance(
 
 
     for idx_met, met in enumerate(scores[list(scores.keys())[0]][clf].keys()):
+        # potentially ignore some metrics
+        if met in ignore_metrics:
+            continue
+
         # get the current scores and p-values as lists
         balances = np.array(list(scores.keys()))
         curr_scores = np.array([scores[bal][clf][met] for bal in balances])
@@ -111,6 +121,8 @@ def metric_balance(
     ax.set_xlabel("data balance")
     ax.set_ylabel("score")
     ax.set_title(classifier)
+    if enforce_ylim:
+        ax.set_ylim(0, 1)
 
     if show_leg is True:
         ax.legend(
