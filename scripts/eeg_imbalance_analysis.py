@@ -1,4 +1,3 @@
-from scipy.fft import next_fast_len
 from imbalance.data import eegbci
 from imbalance.data.eeg import get_info
 from imbalance.pipeline import Pipeline
@@ -48,7 +47,7 @@ for n_features in ['single','multi']:
             groups,
             dataset_balance = np.linspace(0.1, 0.9, 25),
             classifiers = ["lda","svm",LogisticRegression(max_iter=1000),RandomForestClassifier(n_estimators=25)],
-            n_permutations = 0,
+            n_permutations = 100,
             n_init = 10,
         )
         # fit and evaluate classifiers on dataset configurations
