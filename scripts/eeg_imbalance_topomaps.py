@@ -40,8 +40,8 @@ for roi,roi_name in zip(rois,rois_names):
             curr_x,
             y,
             groups,
-            dataset_balance = [0.1,0.5,0.9],
-            classifiers = ['rf',"lda","svm",LogisticRegression(max_iter=1000)],
+            dataset_balance = [0.1,0.3,0.5,0.7,0.9],
+            classifiers = ["svm"],#['rf',"lda","svm",LogisticRegression(max_iter=1000)],
             n_permutations = 0,
             n_init = 10,
         )
