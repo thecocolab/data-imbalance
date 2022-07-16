@@ -155,7 +155,7 @@ def metric_balance(
             ncol=1,
             prop={'size': 14},
         )
-        ax.set_xlabel("Balance", size=16)
+        ax.set_xlabel("Imbalance Ratio", size=16)
 
     ax.tick_params(labelsize=16)
     if show:
@@ -229,7 +229,7 @@ def plot_different_n(
             ncol=1,
             prop={'size': 14}
         )
-        ax.set_xlabel("Balance", size=16)
+        ax.set_xlabel("Imbalance Ratio", size=16)
 
     ax.tick_params(labelsize=16)
 
@@ -309,7 +309,7 @@ def plot_different_cvs(
             ncol=1,
             prop={'size': 14}
         )
-        ax.set_xlabel("Balance", size=16)
+        ax.set_xlabel("Imbalance Ratio", size=16)
     ax.tick_params(labelsize=16)
 
     if show:
