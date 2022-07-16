@@ -11,7 +11,7 @@ LINESTYLES = ["solid", "dashed", "dotted", "dashdot"]
 
 CLASSIFIERS = {
     "lr": "LogisticRegression",
-    "svm": "SVC",
+    "svm": "SupportVectorMachine",
     "lda": "LinearDiscriminantAnalysis",
     "rf": "RandomForestClassifier",
 }
@@ -367,7 +367,7 @@ def _multi_feature_distribution(x: np.ndarray, y: np.ndarray, ax: plt.Axes, show
     with warnings.catch_warnings():
         # ignore a TSNE FutureWarning about PCA initialization
         warnings.filterwarnings("ignore", category=FutureWarning)
-        x = TSNE(learning_rate="auto", init="pca").fit_transform(x)
+        x = TSNE(learning_rate="auto", init="pca", n_components=3).fit_transform(x)
     # TSNE scatter plot
     ax.scatter(*x[y == 0].T, label=class_names[0])
     ax.scatter(*x[y == 1].T, label=class_names[1])
