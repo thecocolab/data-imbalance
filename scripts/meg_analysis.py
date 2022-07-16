@@ -69,7 +69,7 @@ if __name__ == "__main__":
     dattype = "passive"
     eventclf = True
     epoched = True
-    band = band_name.index(band_name) if band_name is not None else None
+    band = BANDS.index(band_name) if band_name is not None else None
 
     datasets = create_datasets(
         data_path,
