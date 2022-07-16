@@ -16,6 +16,13 @@ CLASSIFIERS = {
     "rf": "RandomForestClassifier",
 }
 
+CLASSIFIERS_NAMES = {
+    "lr": "LogisticRegression",
+    "svm": "SupportVectorMachine",
+    "lda": "LinearDiscriminantAnalysis",
+    "rf": "RandomForestClassifier",
+}
+
 METRIC = {
     "roc_auc": "AUC",
     "accuracy": "Accuracy",
@@ -143,7 +150,7 @@ def metric_balance(
 
     #ax.set_ylabel("score")
     if show_title:
-        ax.set_title(CLASSIFIERS[classifier], size=18)
+        ax.set_title(CLASSIFIERS_NAMES[classifier], size=18)
 
     if enforce_ylim:
         ax.set_ylim(0, 1)
@@ -155,7 +162,7 @@ def metric_balance(
             ncol=1,
             prop={'size': 14},
         )
-        ax.set_xlabel("Imbalance Ratio", size=16)
+    ax.set_xlabel("Imbalance Ratio", size=16)
 
     ax.tick_params(labelsize=16)
     if show:
@@ -229,8 +236,7 @@ def plot_different_n(
             ncol=1,
             prop={'size': 14}
         )
-        ax.set_xlabel("Imbalance Ratio", size=16)
-
+    ax.set_xlabel("Imbalance Ratio", size=16)
     ax.tick_params(labelsize=16)
 
     if show:
@@ -309,7 +315,7 @@ def plot_different_cvs(
             ncol=1,
             prop={'size': 14}
         )
-        ax.set_xlabel("Imbalance Ratio", size=16)
+    ax.set_xlabel("Imbalance Ratio", size=16)
     ax.tick_params(labelsize=16)
 
     if show:
@@ -358,7 +364,7 @@ def _single_feature_distribution(x: np.ndarray, y: np.ndarray, ax: plt.Axes, sho
     ax.set_ylabel("")
     if show_leg:
         ax.legend(prop={'size': 14})
-        ax.set_xlabel("Variable", size=16)
+    ax.set_xlabel("Variable", size=16)
 
 
 def _multi_feature_distribution(x: np.ndarray, y: np.ndarray, ax: plt.Axes, show_leg: bool = True, class_names: list = None):
@@ -367,7 +373,7 @@ def _multi_feature_distribution(x: np.ndarray, y: np.ndarray, ax: plt.Axes, show
     with warnings.catch_warnings():
         # ignore a TSNE FutureWarning about PCA initialization
         warnings.filterwarnings("ignore", category=FutureWarning)
-        x = TSNE(learning_rate="auto", init="pca", n_components=3).fit_transform(x)
+        x = TSNE(learning_rate="auto", init="pca", n_components=2).fit_transform(x)
     # TSNE scatter plot
     ax.scatter(*x[y == 0].T, label=class_names[0])
     ax.scatter(*x[y == 1].T, label=class_names[1])
