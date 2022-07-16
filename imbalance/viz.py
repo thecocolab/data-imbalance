@@ -11,7 +11,7 @@ LINESTYLES = ["solid", "dashed", "dotted", "dashdot"]
 
 CLASSIFIERS = {
     "lr": "LogisticRegression",
-    "svm": "SupportVectorMachine",
+    "svm": "SVC",
     "lda": "LinearDiscriminantAnalysis",
     "rf": "RandomForestClassifier",
 }
