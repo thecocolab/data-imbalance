@@ -130,3 +130,6 @@ dmypy.json
 .pyre/
 
 .DS_Store
+
+# pickle files
+*.pickle
