@@ -15,7 +15,7 @@ def eegbci(
     roi: Union[List[str], Callable] = None,
     n_features: str = "multi",
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Returns the eyes-close (1) and eyes-open (0) EEG dataset.
+    """Returns the eyes-close (0) and eyes-open (1) EEG dataset.
 
     Args:
         datapath (str): path where the eeg data files will be downloaded
@@ -105,9 +105,6 @@ def eegbci(
             wrong_subs.append(sub)
     assert wrong_subs == []
 
-    # assert X.shape[0]==109*12*2 # subjects x epochs x tasks
-    # assert np.sum(Y)==109*12*2/2 # half of them must be class 1, the other class 0
-
     # Single-Feature Classification Based on ROI
     if roi is not None:
         if isinstance(roi, list):
@@ -122,7 +119,7 @@ def eegbci(
     if scale:
         scaler = StandardScaler()
         X = scaler.fit_transform(X)
-    return X, Y, G
+    return X, Y.astype(int), G.astype(int)
 
 
 def get_info(datapath="data"):
