@@ -9,6 +9,7 @@ from sklearn.model_selection import (
     StratifiedGroupKFold,
     permutation_test_score,
 )
+from imblearn.under_sampling import RandomUnderSampler
 from sklearn.metrics import (
     accuracy_score,
     balanced_accuracy_score,
@@ -42,11 +43,10 @@ class Pipeline:
         dataset_size (str, array-like): "full" or sequence of ratios to evaluate different
                                         dataset sizes
         n_permutations (int): number of permutations to run for evaluating statistical significance
-                              (set to 0 to disable permutation tests)
+                              (set to 0 to disable permutation tests). Note that permutations will
+                              only be computed for the first initialization (if n_init > 1).
         n_init (int): number of reinitialisation to run for evaluating variance in datasplit
                               (set to 1 to run only one time)
-        metrics (list): placeholder for backwards compatibility, the list of metrics to use. See
-                        sklearn.metrics.SCORERS.keys())
         single_balanced_split (bool): if True, only do a single cross-validation split with a balanced
                                       hold-out test set
     """
@@ -76,7 +76,7 @@ class Pipeline:
         x, y = np.asarray(x), np.asarray(y)
         assert x.ndim in [1, 2], f"x must be 1- or 2-dimensional, got {x.ndim}D"
         assert (
-            y.ndim == 1 and y.dtype == int
+            y.ndim == 1 and np.issubdtype(y.dtype,np.integer)
         ), f"y must be a 1D integer array, got {y.ndim}D with type {y.dtype}"
         n_classes = len(np.unique(y))
         assert n_classes == 2, (
@@ -94,8 +94,8 @@ class Pipeline:
                 f"{c}: {count} samples" for c, count in zip(*class_counts)
             )
             warnings.warn(
-                f"the dataset is unbalanced, which is currently not handled "
-                f"properly. Results might be biased ({class_counts_str})"
+                f"The dataset is unbalanced, in order to generate balanced results, "
+                f"undersampled data will be used ({class_counts_str})"
             )
 
         # store dataset
@@ -105,7 +105,7 @@ class Pipeline:
         # check groups parameter
         if groups is not None:
             groups = np.asarray(groups)
-            assert groups.ndim == 1 and groups.dtype == int, (
+            assert groups.ndim == 1 and np.issubdtype(groups.dtype,np.integer), (
                 f"groups must be a 1D integer array, "
                 f"got {groups.ndim}D with type {groups.dtype}"
             )
@@ -153,7 +153,6 @@ class Pipeline:
         self.n_permutations = n_permutations
         self.n_init = n_init
         # For now we will use those metrics and we ignore the input metrics parameter
-        # TODO need to remove the metrics parameter if we don't use it and leave a placeholder for older code.
         self.metrics = ["accuracy", "roc_auc", "f1", "balanced_accuracy"]
 
         if single_balanced_split and groups is None:
@@ -255,7 +254,11 @@ class Pipeline:
 
                 # adjust class balance by dropping as few samples as possible
                 unbalanced_x, unbalanced_y, unbalanced_groups = Pipeline.unbalance_data(
-                    dset_balance, shuffle_x, shuffle_y, shuffle_groups
+                    dset_balance,
+                    shuffle_x,
+                    shuffle_y,
+                    shuffle_groups,
+                    seed=self.seed + nr_init,
                 )
 
                 for dset_size in self.dataset_size:
@@ -624,7 +627,11 @@ class Pipeline:
         return result
 
     def unbalance_data(
-        ratio: float, x: np.ndarray, y: np.ndarray, groups: np.ndarray = None
+        ratio: float,
+        x: np.ndarray,
+        y: np.ndarray,
+        groups: np.ndarray = None,
+        seed: int = 0,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Artificially unbalances a given dataset according to a balance ratio
 
@@ -643,7 +650,7 @@ class Pipeline:
             for group in np.unique(groups):
                 group_idx = np.where(groups == group)[0]
                 group_x, group_y, _ = Pipeline.unbalance_data(
-                    ratio, x[group_idx], y[group_idx]
+                    ratio, x[group_idx], y[group_idx], seed=seed
                 )
                 groups_x.append(group_x)
                 groups_y.append(group_y)
@@ -655,28 +662,40 @@ class Pipeline:
             )
 
         else:
-            # make sure we start with a balanced dataset
             unique_y, class_counts = np.unique(y, return_counts=True)
+            data_ratio = 1 - min(class_counts) / sum(class_counts)
+            max_class = max(class_counts)
 
-            assert (class_counts == class_counts[0]).all(), (
-                f"classes have different numbers of "
-                f"samples (counts: {list(class_counts)})"
-            )
-
-            # compute expected class sizes according to ratio
-            n0 = class_counts[1] / ratio - class_counts[1]
-            n1 = class_counts[1]
-
-            # make sure the expected class sizes are realizable with the provided data
-            alpha = min(class_counts[0] / n0, class_counts[1] / n1)
-            n0 = int(n0 * alpha)
-            n1 = int(class_counts[1] * alpha)
+            if ratio >= data_ratio:
+                class_counts = [max_class, max_class]
+                n0, n1 = Pipeline._get_class_numbers(class_counts, ratio)
+            else:
+                # balances the data by undersampling. Will change nothing
+                # if the data is already balanced
+                undersample = RandomUnderSampler(
+                    sampling_strategy="majority", random_state=seed
+                )
+                x, y = undersample.fit_resample(x, y)
+                unique_y, class_counts = np.unique(y, return_counts=True)
+                n0, n1 = Pipeline._get_class_numbers(class_counts, ratio)
 
             # rebalance data
             idxs = np.concatenate(
                 [np.where(y == unique_y[0])[0][:n0], np.where(y == unique_y[1])[0][:n1]]
             )
             return x[idxs], y[idxs], None if groups is None else groups[idxs]
+
+    def _get_class_numbers(class_counts: list, ratio: float) -> tuple:
+        # compute expected class sizes according to ratio
+        n0 = class_counts[1] / ratio - class_counts[1]
+        n1 = class_counts[1]
+
+        # make sure the expected class sizes are realizable with the provided data
+        alpha = min(class_counts[0] / n0, class_counts[1] / n1)
+        n0 = int(n0 * alpha)
+        n1 = int(class_counts[1] * alpha)
+
+        return n0, n1
 
     def limit_dataset_size(
         ratio: float, x: np.ndarray, y: np.ndarray, groups: np.ndarray = None
@@ -769,7 +788,7 @@ if __name__ == "__main__":
     from imbalance.data import gaussian_binary
 
     # generate random data
-    x, y, groups = gaussian_binary(n_groups=5)
+    x, y, groups = gaussian_binary()
 
     # initialize the pipeline
     pl = Pipeline(x, y, groups, n_permutations=10, n_init=1, single_balanced_split=True)
