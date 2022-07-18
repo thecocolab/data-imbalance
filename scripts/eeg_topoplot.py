@@ -1,3 +1,4 @@
+import string
 import mne
 import pickle
 from imbalance.data.eeg import get_info
@@ -15,8 +16,23 @@ metrics = [key for key, val in viz.METRIC.items()]
 clf_ = "svm"
 met = "accuracy"
 
+x_offsets = [1, 0, 0, 1]
+y_offsets = [0, 0, 1, 1]
+
 for clf_ in clfs:
-    for met in metrics:
+    fig, axes = plt.subplots(nrows=2, ncols=6, figsize=(10, 6))
+
+    for ax_idx, ax in enumerate(axes[:, ::3].T.flat):
+        ax.text(
+            -0.1,
+            1.3,
+            string.ascii_lowercase[ax_idx] + ")",
+            transform=ax.transAxes,
+            size=13,
+            weight="bold",
+        )
+
+    for met_idx, met in enumerate(metrics):
         clf = viz.CLASSIFIERS[clf_]
         outpath = f"data/topos_3balances_allCLFS/eeg_topoplot_met-{met}_clf-{clf}.png"
         met_ = viz.METRIC[met]
@@ -32,17 +48,19 @@ for clf_ in clfs:
             topobalances.append(curr_scores)
 
         topobalances = np.array(topobalances)
-        vmin = 0  # topobalances.min()
-        vmax = 1  # topobalances.max()
-        fig, axes = plt.subplots(nrows=1, ncols=balances.shape[0], sharey=True)
+        vmin = 0
+        vmax = 1
         for i in range(topobalances.shape[-1]):
-            axes[i].set_title(f"IR = {balances[i]}")
+            title = f"IR = {balances[i]}"
+            if i == 1:
+                title = f"{met_}\n" + title
+            axes[y_offsets[met_idx], x_offsets[met_idx] * 3 + i].set_title(title)
             im, cn = mne.viz.plot_topomap(
                 topobalances[:, i],
                 info,
                 sensors=False,
                 contours=False,
-                axes=axes[i],
+                axes=axes[y_offsets[met_idx], x_offsets[met_idx] * 3 + i],
                 cmap="jet",
                 vmin=vmin,
                 vmax=vmax,
@@ -50,12 +68,22 @@ for clf_ in clfs:
             )
         cbar_ticks = np.linspace(vmin, vmax, 5)
         cbar = plt.colorbar(
-            mappable=im, ax=axes, ticks=cbar_ticks, format="%.1f", location="bottom"
+            mappable=im,
+            ax=axes[
+                y_offsets[met_idx], x_offsets[met_idx] * 3 : x_offsets[met_idx] * 3 + 3
+            ],
+            ticks=cbar_ticks,
+            format="%.1f",
+            location="bottom",
         )
         cbar.set_label("Score")
-        if clf == "SVC":
-            plt.suptitle(f"{met_} for SVM")
-        else:
-            plt.suptitle(f"{met_} for {clf}")
 
-        fig.savefig(outpath)
+        box = cbar.ax.get_position()
+        box.x0 = box.x0 + 0.02
+        box.x1 = box.x1 - 0.02
+        box.y0 = box.y0 - 0.1
+        box.y1 = box.y1 - 0.1
+        cbar.ax.set_position(box)
+
+    plt.subplots_adjust()
+    plt.savefig("notebooks/Figure5.pdf", bbox_inches="tight")
