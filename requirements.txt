@@ -6,4 +6,5 @@ mne==1.0.3
 jupyter==1.0.0
 pandas==1.4.1
 pooch==1.6.0
+imblearn
 mlneurotools @ git+https://github.com/arthurdehgan/NeuroPy-MLToolbox.git
