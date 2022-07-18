@@ -29,7 +29,7 @@ for clf_ in clfs:
         ax.text(
             -0.1,
             1.3,
-            string.ascii_lowercase[ax_idx] + ")",
+            string.ascii_lowercase[ax_idx+6] + ")",
             transform=ax.transAxes,
             size=13,
             weight="bold",

@@ -7,6 +7,7 @@ from sklearn.model_selection import (
     BaseCrossValidator,
     StratifiedKFold,
     StratifiedGroupKFold,
+    permutation_test_score,
 )
 from sklearn.metrics import (
     accuracy_score,
@@ -291,35 +292,97 @@ class Pipeline:
                         )
 
                         if self.single_balanced_split:
-                            curr_clf = clone(clf)
-                            curr_clf.fit(curr_x, curr_y)
+                            comb_x = np.concatenate([curr_x, holdout_x_test])
+                            comb_y = np.concatenate([curr_y, holdout_y_test])
+                            comb_groups = (
+                                np.concatenate([curr_groups, holdout_groups_test])
+                                if curr_groups is not None
+                                else None
+                            )
+                            cv_splits = [
+                                np.arange(len(curr_x)),
+                                np.arange(len(holdout_x_test)),
+                            ]
 
-                            # predict on the holdout set
-                            y_test = holdout_y_test
-                            y_pred = curr_clf.predict_proba(holdout_x_test)[:, 1]
+                            # TODO: run permutation tests only once and evaluate all metrics
+                            accuracy = permutation_test_score(
+                                clf,
+                                comb_x,
+                                comb_y,
+                                groups=comb_groups,
+                                scoring="accuracy",
+                                cv=[cv_splits],
+                                n_permutations=self.n_permutations,
+                                n_jobs=-1,
+                            )
+                            balanced_accuracy = permutation_test_score(
+                                clf,
+                                comb_x,
+                                comb_y,
+                                groups=comb_groups,
+                                scoring="balanced_accuracy",
+                                cv=[cv_splits],
+                                n_permutations=self.n_permutations,
+                                n_jobs=-1,
+                            )
+                            roc_auc = permutation_test_score(
+                                clf,
+                                comb_x,
+                                comb_y,
+                                groups=comb_groups,
+                                scoring="roc_auc",
+                                cv=[cv_splits],
+                                n_permutations=self.n_permutations,
+                                n_jobs=-1,
+                            )
+                            f1 = permutation_test_score(
+                                clf,
+                                comb_x,
+                                comb_y,
+                                groups=comb_groups,
+                                scoring="f1",
+                                cv=[cv_splits],
+                                n_permutations=self.n_permutations,
+                                n_jobs=-1,
+                            )
 
-                            # compute metrics
-                            try:
-                                roc_auc = roc_auc_score(y_test, y_pred)
-                            except:
-                                roc_auc = np.nan
-                            y_pred = (y_pred > 0.5).astype(int)
-                            f1 = f1_score(y_test, y_pred)
-                            balanced_accuracy = balanced_accuracy_score(y_test, y_pred)
-                            accuracy = accuracy_score(y_test, y_pred)
+                            # curr_clf = clone(clf)
+                            # curr_clf.fit(curr_x, curr_y)
+
+                            # # predict on the holdout set
+                            # y_test = holdout_y_test
+                            # y_pred = curr_clf.predict_proba(holdout_x_test)[:, 1]
+
+                            # # compute metrics
+                            # try:
+                            #     roc_auc = roc_auc_score(y_test, y_pred)
+                            # except:
+                            #     roc_auc = np.nan
+                            # y_pred = (y_pred > 0.5).astype(int)
+                            # f1 = f1_score(y_test, y_pred)
+                            # balanced_accuracy = balanced_accuracy_score(y_test, y_pred)
+                            # accuracy = accuracy_score(y_test, y_pred)
 
                             # store test scores
                             curr_results_dict = results[nr_init][dset_balance][
                                 dset_size
                             ][clf_name]
-                            curr_results_dict["accuracy"] = (accuracy, None, None)
-                            curr_results_dict["roc_auc"] = (roc_auc, None, None)
-                            curr_results_dict["balanced_accuracy"] = (
-                                balanced_accuracy,
-                                None,
-                                None,
+                            curr_results_dict["accuracy"] = (
+                                accuracy[0],
+                                accuracy[2],
+                                np.nanmean(accuracy[1]),
                             )
-                            curr_results_dict["f1"] = (f1, None, None)
+                            curr_results_dict["roc_auc"] = (
+                                roc_auc[0],
+                                roc_auc[2],
+                                np.nanmean(roc_auc[1]),
+                            )
+                            curr_results_dict["balanced_accuracy"] = (
+                                balanced_accuracy[0],
+                                balanced_accuracy[2],
+                                np.nanmean(balanced_accuracy[1]),
+                            )
+                            curr_results_dict["f1"] = (f1[0], f1[2], np.nanmean(f1[1]))
                         else:
                             # only run the permutation test for the first  interation
                             if nr_init == 0:
@@ -709,7 +772,7 @@ if __name__ == "__main__":
     x, y, groups = gaussian_binary(n_groups=5)
 
     # initialize the pipeline
-    pl = Pipeline(x, y, groups, n_permutations=1)
+    pl = Pipeline(x, y, groups, n_permutations=10, n_init=1, single_balanced_split=True)
     # fit and evaluate the classifiers with different configurations
     pl.evaluate()
     # print classification results
