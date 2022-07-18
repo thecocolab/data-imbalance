@@ -42,11 +42,10 @@ class Pipeline:
         dataset_size (str, array-like): "full" or sequence of ratios to evaluate different
                                         dataset sizes
         n_permutations (int): number of permutations to run for evaluating statistical significance
-                              (set to 0 to disable permutation tests)
+                              (set to 0 to disable permutation tests). Note that permutations will
+                              only be computed for the first initialization (if n_init > 1).
         n_init (int): number of reinitialisation to run for evaluating variance in datasplit
                               (set to 1 to run only one time)
-        metrics (list): placeholder for backwards compatibility, the list of metrics to use. See
-                        sklearn.metrics.SCORERS.keys())
         single_balanced_split (bool): if True, only do a single cross-validation split with a balanced
                                       hold-out test set
     """
@@ -153,7 +152,6 @@ class Pipeline:
         self.n_permutations = n_permutations
         self.n_init = n_init
         # For now we will use those metrics and we ignore the input metrics parameter
-        # TODO need to remove the metrics parameter if we don't use it and leave a placeholder for older code.
         self.metrics = ["accuracy", "roc_auc", "f1", "balanced_accuracy"]
 
         if single_balanced_split and groups is None:
