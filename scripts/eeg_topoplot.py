@@ -36,12 +36,12 @@ for clf_ in clfs:
         vmax = 1  # topobalances.max()
         fig, axes = plt.subplots(nrows=1, ncols=balances.shape[0], sharey=True)
         for i in range(topobalances.shape[-1]):
-            axes[i].set_title(f"R = {balances[i]}")
+            axes[i].set_title(f"IR = {balances[i]}")
             im, cn = mne.viz.plot_topomap(
                 topobalances[:, i],
                 info,
-                contours=0,
-                extrapolate="head",
+                sensors=False,
+                contours=False,
                 axes=axes[i],
                 cmap="jet",
                 vmin=vmin,
