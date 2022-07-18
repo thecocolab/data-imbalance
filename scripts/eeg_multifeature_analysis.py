@@ -1,5 +1,5 @@
 """
-Test 1
+EEG Test 1
 Multi-feature experiment with Stratified Group K-Fold
 """
 
