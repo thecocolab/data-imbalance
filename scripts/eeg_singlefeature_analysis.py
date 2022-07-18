@@ -22,10 +22,10 @@ from imbalance import viz
 # Configuration of the test
 ###############################################################################
 
-dataset_balance=[0.1, 0.5, 0.9]
+dataset_balance = [0.1, 0.5, 0.9]
 classifiers = ["svm"]
-n_permutations=0
-n_init=10
+n_permutations = 0
+n_init = 10
 cross_validation = StratifiedGroupKFold(n_splits=5)
 
 ###############################################################################
@@ -33,7 +33,7 @@ cross_validation = StratifiedGroupKFold(n_splits=5)
 ###############################################################################
 
 # We will test each channel as a different region-of-interest
-chans = get_info().ch_names 
+chans = get_info().ch_names
 rois = [[x] for x in chans]
 rois_names = chans
 
@@ -82,11 +82,11 @@ for roi, roi_name in zip(rois, rois_names):
             curr_x,
             y,
             groups,
-            dataset_balance = dataset_balance,
-            classifiers= classifiers,
+            dataset_balance=dataset_balance,
+            classifiers=classifiers,
             n_permutations=n_permutations,
             n_init=n_init,
-            cross_validation = cross_validation
+            cross_validation=cross_validation,
         )
 
         pl.evaluate()
@@ -119,14 +119,14 @@ for clf in classifiers:
         ax.text(
             -0.1,
             1.3,
-            string.ascii_lowercase[ax_idx] + ")",
+            string.ascii_lowercase[ax_idx + 6] + ")",
             transform=ax.transAxes,
             size=13,
             weight="bold",
         )
 
     clf_key = viz.CLASSIFIERS[clf]
-    outpath = pipeline_path.replace("%%.pickle",f"topomap_clf-{clf_key}.pdf")
+    outpath = pipeline_path.replace("%%.pickle", f"topomap_clf-{clf_key}.pdf")
 
     for met_idx, met in enumerate(metrics):
         met_ = viz.METRIC[met]
@@ -191,4 +191,4 @@ for clf in classifiers:
     plt.subplots_adjust()
     plt.savefig(outpath, bbox_inches="tight")
 
-print('EEG single-feature channel-wise test done!')
+print("EEG single-feature channel-wise test done!")
