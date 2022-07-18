@@ -131,5 +131,7 @@ dmypy.json
 
 .DS_Store
 
-# pickle files
+# data files
 *.pickle
+*.npy
+*.pckl
