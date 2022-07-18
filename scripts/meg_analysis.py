@@ -19,8 +19,7 @@ def compute_and_save_results(x, y, groups, data_path, sensor, band_name):
         os.makedirs(save_path)
     band_name = "multifeature" if band_name is None else band_name
     with open(
-        os.path.join(save_path, f"MEG_{band_name}_imbalance_{sensor}.pckl"),
-        "wb",
+        os.path.join(save_path, f"MEG_{band_name}_imbalance_{sensor}.pckl"), "wb",
     ) as fp:
         pickle.dump(copy.deepcopy(pl), fp, protocol=pickle.HIGHEST_PROTOCOL)
 

@@ -30,6 +30,7 @@ METRIC = {
     "f1": "F1 score",
 }
 
+
 def metric_balance(
     pl: Pipeline,
     classifier: str,
@@ -37,7 +38,7 @@ def metric_balance(
     ax: plt.Axes = None,
     show: bool = True,
     show_leg: bool = True,
-    ignore_metrics : Union[list,str] = [],
+    ignore_metrics: Union[list, str] = [],
     enforce_ylim: bool = True,
     color_offset: int = 0,
     reset_colors: bool = False,
@@ -95,7 +96,6 @@ def metric_balance(
         curr_pvals = np.array([pvalues[bal][clf][met] for bal in balances])
         curr_perm_score = np.array([perm_score[bal][clf][met] for bal in balances])
 
-
         # plot the scores for the current classifier and metric
         line = ax.plot(
             balances,
@@ -142,13 +142,13 @@ def metric_balance(
 
     # trick to get the chance level dotted line in the legend
     if chance_leg:
-        metric_legend["Chance level"] = ax.plot([],[],
-                                                linestyle="dotted",
-                                                color="black")[0]
+        metric_legend["Chance level"] = ax.plot(
+            [], [], linestyle="dotted", color="black"
+        )[0]
 
     # add annotations
 
-    #ax.set_ylabel("score")
+    # ax.set_ylabel("score")
     if show_title:
         ax.set_title(CLASSIFIERS_NAMES[classifier], size=18)
 
@@ -160,7 +160,7 @@ def metric_balance(
             list(metric_legend.values()) + list(classifier_legend.values()),
             list(metric_legend.keys()) + list(classifier_legend.keys()),
             ncol=1,
-            prop={'size': 14},
+            prop={"size": 14},
         )
     ax.set_xlabel("Imbalance Ratio", size=16)
 
@@ -169,9 +169,15 @@ def metric_balance(
         plt.show()
     return line_plots
 
+
 def plot_different_n(
-    pl: Pipeline, classifier: str, metric: str , ax: plt.Axes = None,
-    show: bool = True, show_leg: bool = True, show_title: bool = True,
+    pl: Pipeline,
+    classifier: str,
+    metric: str,
+    ax: plt.Axes = None,
+    show: bool = True,
+    show_leg: bool = True,
+    show_title: bool = True,
 ):
     """Visualizes classification scores of different sizes of datasets.
 
@@ -199,15 +205,13 @@ def plot_different_n(
         # get the current scores and p-values as lists
         balances = np.array(list(scores.keys()))
         curr_scores = np.array([scores[bal][size][clf][metric] for bal in balances])
-        curr_scores_std = np.array([scores_std[bal][size][clf][metric] for bal in balances])
+        curr_scores_std = np.array(
+            [scores_std[bal][size][clf][metric] for bal in balances]
+        )
 
         # plot the scores for the current classifier and metric
         line = ax.plot(
-            balances,
-            curr_scores,
-            linestyle="solid",
-            color=f"C{idx_size}",
-            alpha=0.5,
+            balances, curr_scores, linestyle="solid", color=f"C{idx_size}", alpha=0.5,
         )[0]
 
         # fill the std area
@@ -225,16 +229,16 @@ def plot_different_n(
 
     # add annotations
 
-    #ax.set_ylabel("score")
+    # ax.set_ylabel("score")
     if show_title:
-        ax.set_title(CLASSIFIERS[classifier] + ' ' + METRIC[metric], size=18)
+        ax.set_title(CLASSIFIERS[classifier] + " " + METRIC[metric], size=18)
 
     if show_leg is True:
         ax.legend(
             list(metric_legend.values()),
             list(metric_legend.keys()),
             ncol=1,
-            prop={'size': 14}
+            prop={"size": 14},
         )
     ax.set_xlabel("Imbalance Ratio", size=16)
     ax.tick_params(labelsize=16)
@@ -242,9 +246,15 @@ def plot_different_n(
     if show:
         plt.show()
 
+
 def plot_different_cvs(
-    pls: dict, classifier: str, metric: str , ax: plt.Axes = None,
-    show: bool = True, show_leg: bool = True, show_title: bool = True,
+    pls: dict,
+    classifier: str,
+    metric: str,
+    ax: plt.Axes = None,
+    show: bool = True,
+    show_leg: bool = True,
+    show_title: bool = True,
 ):
     """Visualizes classification scores of different cross-validation schemes.
 
@@ -264,7 +274,9 @@ def plot_different_cvs(
     cross_val_names = []
     for cv_name in pls.keys():
         scores_list.append(pls[cv_name].get(dataset_size="all", result_type="score"))
-        scores_std_list.append(pls[cv_name].get(dataset_size="all", result_type="score_std"))
+        scores_std_list.append(
+            pls[cv_name].get(dataset_size="all", result_type="score_std")
+        )
         cross_val_names.append(cv_name)
     # start the figure
     if ax is None:
@@ -278,16 +290,16 @@ def plot_different_cvs(
         # get the current scores and p-values as lists
         # TODO : find a better way to remove the size level
         balances = np.array(list(scores_list[idx_cv].keys()))
-        curr_scores = np.array([scores_list[idx_cv][bal][1.0][clf][metric] for bal in balances])
-        curr_scores_std = np.array([scores_std_list[idx_cv][bal][1.0][clf][metric] for bal in balances])
+        curr_scores = np.array(
+            [scores_list[idx_cv][bal][1.0][clf][metric] for bal in balances]
+        )
+        curr_scores_std = np.array(
+            [scores_std_list[idx_cv][bal][1.0][clf][metric] for bal in balances]
+        )
 
         # plot the scores for the current classifier and metric
         line = ax.plot(
-            balances,
-            curr_scores,
-            linestyle="solid",
-            color=f"C{idx_cv}",
-            alpha=0.5,
+            balances, curr_scores, linestyle="solid", color=f"C{idx_cv}", alpha=0.5,
         )[0]
 
         # fill the std area
@@ -304,16 +316,16 @@ def plot_different_cvs(
             metric_legend[cv_name] = line
 
     # add annotations
-    #ax.set_ylabel("score")
+    # ax.set_ylabel("score")
     if show_title:
-        ax.set_title(CLASSIFIERS[classifier] + ' ' + METRIC[metric], size=18)
+        ax.set_title(CLASSIFIERS[classifier] + " " + METRIC[metric], size=18)
 
     if show_leg is True:
         ax.legend(
             list(metric_legend.values()),
             list(metric_legend.keys()),
             ncol=1,
-            prop={'size': 14}
+            prop={"size": 14},
         )
     ax.set_xlabel("Imbalance Ratio", size=16)
     ax.tick_params(labelsize=16)
@@ -322,7 +334,13 @@ def plot_different_cvs(
         plt.show()
 
 
-def data_distribution(pl: Pipeline, ax: Optional[plt.Axes] = None, show: bool = True, show_leg: bool = True, class_names: list = None):
+def data_distribution(
+    pl: Pipeline,
+    ax: Optional[plt.Axes] = None,
+    show: bool = True,
+    show_leg: bool = True,
+    class_names: list = None,
+):
     """Plots the data distribution of the input data. If x is single-feature, creates a density plot. If
     x is multi-feature, applies TSNE and creates a scatter plot of the two classes.
 
@@ -353,7 +371,13 @@ def data_distribution(pl: Pipeline, ax: Optional[plt.Axes] = None, show: bool = 
         plt.show()
 
 
-def _single_feature_distribution(x: np.ndarray, y: np.ndarray, ax: plt.Axes, show_leg: bool = True, class_names: list = None):
+def _single_feature_distribution(
+    x: np.ndarray,
+    y: np.ndarray,
+    ax: plt.Axes,
+    show_leg: bool = True,
+    class_names: list = None,
+):
     if class_names is None:
         class_names = ["Class 0", "Class 1"]
     # create density plots
@@ -363,11 +387,17 @@ def _single_feature_distribution(x: np.ndarray, y: np.ndarray, ax: plt.Axes, sho
 
     ax.set_ylabel("")
     if show_leg:
-        ax.legend(prop={'size': 14})
+        ax.legend(prop={"size": 14})
     ax.set_xlabel("Variable", size=16)
 
 
-def _multi_feature_distribution(x: np.ndarray, y: np.ndarray, ax: plt.Axes, show_leg: bool = True, class_names: list = None):
+def _multi_feature_distribution(
+    x: np.ndarray,
+    y: np.ndarray,
+    ax: plt.Axes,
+    show_leg: bool = True,
+    class_names: list = None,
+):
     if class_names is None:
         class_names = ["Class 0", "Class 1"]
     with warnings.catch_warnings():
@@ -380,7 +410,7 @@ def _multi_feature_distribution(x: np.ndarray, y: np.ndarray, ax: plt.Axes, show
     # add annotations
 
     if show_leg:
-        ax.legend(prop={'size': 14})
+        ax.legend(prop={"size": 14})
         ax.set_xlabel("Component 0", size=14)
         ax.set_ylabel("Component 1", size=14)
 
@@ -400,12 +430,7 @@ if __name__ == "__main__":
     x, y, groups = gaussian_binary()
 
     # run the pipeline
-    pl = Pipeline(
-        x,
-        y,
-        groups,
-        dataset_balance=np.linspace(0.1, 0.9, 25),
-    )
+    pl = Pipeline(x, y, groups, dataset_balance=np.linspace(0.1, 0.9, 25),)
     pl.evaluate()
 
     # visualize the results

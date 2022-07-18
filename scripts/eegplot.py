@@ -10,18 +10,17 @@ import numpy as np
 import sys
 import matplotlib.pyplot as plt
 
-pipeline_path=f'data/eeg_roi_multi_ Stratified-Group2.pickle'
+pipeline_path = f"data/eeg_roi_multi_ Stratified-Group2.pickle"
 
-pl = pickle.load(open(pipeline_path,"rb"))
+pl = pickle.load(open(pipeline_path, "rb"))
 
 
-clfs = [key for key,val in viz.CLASSIFIERS.items()]
+clfs = [key for key, val in viz.CLASSIFIERS.items()]
 for clf in clfs:
-    viz.metric_balance(pl,clf,show=False)
+    viz.metric_balance(pl, clf, show=False)
     fig = plt.gcf()
-    fig.savefig(pipeline_path.replace(".pickle",f"_{clf}.png"))
+    fig.savefig(pipeline_path.replace(".pickle", f"_{clf}.png"))
 
-viz.data_distribution(pl,show=False)
+viz.data_distribution(pl, show=False)
 fig = plt.gcf()
-fig.savefig(pipeline_path.replace(".pickle",f"_dist.png"))
-
+fig.savefig(pipeline_path.replace(".pickle", f"_dist.png"))
