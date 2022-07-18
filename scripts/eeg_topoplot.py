@@ -6,6 +6,9 @@ import numpy as np
 from imbalance import viz
 import matplotlib.pyplot as plt
 
+plt.style.use("seaborn-dark")
+plt.rcParams.update({"axes.edgecolor": "black"})
+
 info = get_info()
 chans = get_info().ch_names
 

@@ -160,7 +160,7 @@ def metric_balance(
             list(metric_legend.values()) + list(classifier_legend.values()),
             list(metric_legend.keys()) + list(classifier_legend.keys()),
             ncol=1,
-            prop={"size": 14},
+            prop={"size": 12},
         )
     ax.set_xlabel("Imbalance Ratio", size=16)
 
@@ -239,7 +239,7 @@ def plot_different_n(
             list(metric_legend.values()),
             list(metric_legend.keys()) if legend_labels is None else legend_labels,
             ncol=1,
-            prop={"size": 14},
+            prop={"size": 12},
         )
     ax.set_xlabel("Imbalance Ratio", size=16)
     ax.tick_params(labelsize=16)
@@ -326,7 +326,7 @@ def plot_different_cvs(
             list(metric_legend.values()),
             list(metric_legend.keys()),
             ncol=1,
-            prop={"size": 14},
+            prop={"size": 12},
         )
     ax.set_xlabel("Imbalance Ratio", size=16)
     ax.tick_params(labelsize=16)
@@ -388,7 +388,7 @@ def _single_feature_distribution(
 
     ax.set_ylabel("")
     if show_leg:
-        ax.legend(prop={"size": 14})
+        ax.legend(prop={"size": 12})
     ax.set_xlabel("Variable", size=16)
 
 
@@ -411,7 +411,7 @@ def _multi_feature_distribution(
     # add annotations
 
     if show_leg:
-        ax.legend(prop={"size": 14})
+        ax.legend(prop={"size": 12})
         ax.set_xlabel("Component 0", size=14)
         ax.set_ylabel("Component 1", size=14)
 
