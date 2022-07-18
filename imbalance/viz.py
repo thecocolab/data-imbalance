@@ -178,6 +178,7 @@ def plot_different_n(
     show: bool = True,
     show_leg: bool = True,
     show_title: bool = True,
+    legend_labels: Optional[List[str]] = None,
 ):
     """Visualizes classification scores of different sizes of datasets.
 
@@ -236,7 +237,7 @@ def plot_different_n(
     if show_leg is True:
         ax.legend(
             list(metric_legend.values()),
-            list(metric_legend.keys()),
+            list(metric_legend.keys()) if legend_labels is None else legend_labels,
             ncol=1,
             prop={"size": 14},
         )
