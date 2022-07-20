@@ -1,4 +1,11 @@
-# Exploring the robustness of classification metrics on imbalanced datasets
+# Class imbalance should not throw you off balance: Choosing classifiers and performance metrics for brain decoding with imbalanced data
+
+Machine learning (ML) is becoming a standard tool in neuroscience and neuroimaging research. Yet, because it is such a powerful tool, the appropriate application of ML requires a sound understanding of its subtleties and limitations. In particular, applying ML to datasets with imbalanced classes, which are very common in neuroscience, can have severe consequences if not adequately addressed. With the neuroscience machine-learning user in mind, this technical note provides a didactic overview of the class imbalance problem and illustrates its impact through systematic manipulation of class imbalance ratios in both simulated data, and real electroencephalography (EEG) and magnetoencephalography (MEG) brain data. Our results illustrate how in highly imbalanced data, the commonly used Accuracy (Acc) metric yields misleadingly high performances by preferentially predicting the majority class, while other evaluations metrics (e.g. Balanced Accuracy (BAcc) and the Area Under the Curve (AUC) of the Receiver Operating Characteristic (ROC)) may still provide reliable performance evaluations. In terms of classifiers and cross-validation schemes, our data highlights the higher robustness of Random Forest (RF) and Stratified K-Fold cross-validation, compared to the other approaches tested. Critically, for neuroscience ML applications that seek to minimize overall classification error (not preferentially that of a single class), we recommend the routine use of BAcc, rather than the simple and more commonly used Acc metric. Importantly, we provide a best practices list of recommendations for dealing with imbalanced data, and open-source code to allow the neuroscience community to replicate our observations and further explore the best practices in handling imbalanced data.
+
+---
+
+This repository contains the code to the analysis performed in the accompanying paper.
+
 `pipeline.py` contains a generalizable pipeline for comparing classification metrics for different combinations of classifiers, sample size and class balance. It will be extended with helper-functions to access and visualize the results in the future.
 
 ## Installation
