@@ -6,7 +6,9 @@ Machine learning (ML) is becoming a standard tool in neuroscience and neuroimagi
 
 This repository contains the code to the analysis performed in the accompanying paper.
 
-`pipeline.py` contains a generalizable pipeline for comparing classification metrics for different combinations of classifiers, sample size and class balance. It will be extended with helper-functions to access and visualize the results in the future.
+- `pipeline.py` contains a generalizable pipeline for comparing classification metrics for different combinations of classifiers, sample size and class balance.
+- `viz.py` contains a collection of visualization functions used to generate figures
+- the `notebooks` directory contains code to run the experiments, using the pipeline (`pipeline.py`) and visualization functions (`viz.py`)
 
 ## Installation
 First, create and activate a new Python environment:
