@@ -1,10 +1,10 @@
-# Class imbalance should not throw you off balance: Choosing classifiers and performance metrics for brain decoding with imbalanced data
+# [Class imbalance should not throw you off balance: Choosing the right classifiers and performance metrics for brain decoding with imbalanced data](https://doi.org/10.1101/2022.07.18.500262)
 
-Machine learning (ML) is becoming a standard tool in neuroscience and neuroimaging research. Yet, because it is such a powerful tool, the appropriate application of ML requires a sound understanding of its subtleties and limitations. In particular, applying ML to datasets with imbalanced classes, which are very common in neuroscience, can have severe consequences if not adequately addressed. With the neuroscience machine-learning user in mind, this technical note provides a didactic overview of the class imbalance problem and illustrates its impact through systematic manipulation of class imbalance ratios in both simulated data, and real electroencephalography (EEG) and magnetoencephalography (MEG) brain data. Our results illustrate how in highly imbalanced data, the commonly used Accuracy (Acc) metric yields misleadingly high performances by preferentially predicting the majority class, while other evaluations metrics (e.g. Balanced Accuracy (BAcc) and the Area Under the Curve (AUC) of the Receiver Operating Characteristic (ROC)) may still provide reliable performance evaluations. In terms of classifiers and cross-validation schemes, our data highlights the higher robustness of Random Forest (RF) and Stratified K-Fold cross-validation, compared to the other approaches tested. Critically, for neuroscience ML applications that seek to minimize overall classification error (not preferentially that of a single class), we recommend the routine use of BAcc, rather than the simple and more commonly used Acc metric. Importantly, we provide a best practices list of recommendations for dealing with imbalanced data, and open-source code to allow the neuroscience community to replicate our observations and further explore the best practices in handling imbalanced data.
+Machine learning (ML) is increasingly used in cognitive, computational and clinical neuroscience. The reliable and efficient application of ML requires a sound understanding of its subtleties and limitations. Training ML models on datasets with imbalanced classes is a particularly common problem, and it can have severe consequences if not adequately addressed. With the neuroscience ML user in mind, this paper provides a didactic assessment of the class imbalance problem and illustrates its impact through systematic manipulation of data imbalance ratios in (i) simulated data and (ii) brain data recorded with electroencephalography (EEG) and magnetoencephalography (MEG). Our results illustrate how the widely-used Accuracy (Acc) metric, which measures the overall proportion of successful predictions, yields misleadingly high performances, as class imbalance increases. Because Acc weights the per-class ratios of correct predictions proportionally to class size, it largely disregards the performance on the minority class. A binary classification model that learns to systematically vote for the majority class will yield an artificially high decoding accuracy that directly reflects the imbalance between the two classes, rather than any genuine generalizable ability to discriminate between them. We show that other evaluation metrics such as the Area Under the Curve (AUC) of the Receiver Operating Characteristic (ROC), and the less common Balanced Accuracy (BAcc) metric – defined as the arithmetic mean between sensitivity and specificity, provide more reliable performance evaluations for imbalanced data. Our findings also highlight the robustness of Random Forest (RF), and the benefits of using stratified cross-validation and hyperprameter optimization to tackle data imbalance. Critically, for neuroscience ML applications that seek to minimize overall classification error, we recommend the routine use of BAcc, which in the specific case of balanced data is equivalent to using standard Acc, and readily extends to multi-class settings. Importantly, we present a list of recommendations for dealing with imbalanced data, as well as open-source code to allow the neuroscience community to replicate and extend our observations and explore alternative approaches to coping with imbalanced data.
 
 ---
 
-This repository contains the code to the analysis performed in the accompanying paper.
+This repository contains the code to the analysis performed in the accompanying paper (https://doi.org/10.1101/2022.07.18.500262).
 
 - `pipeline.py` contains a generalizable pipeline for comparing classification metrics for different combinations of classifiers, sample size and class balance.
 - `viz.py` contains a collection of visualization functions used to generate figures
@@ -85,14 +85,3 @@ pl.scores = {
     0.5: ...
 }
 ```
-
-## TODO
-- implement helper-functions for easier access to results
-    - e.g. something that allows `get_scores(balance="all", size=1.0, classifier="svm", metric="acc")`, which should return a NumPy array with only the selected results
-    - accessing subsets of the `scores` dictionary
-- a visualization framework which uses the `Pipeline` class
-    - line-graph with data balance on the x-axis and different metrics on the y-axis
-    - same as above but comparing different classifiers
-    - 3D surface plot showing different metrics on the data-balance x data-size plane
-- implement a dataset factory for synthetic data
-    - single- or multi-feature dataset (potentially correlated features?)
