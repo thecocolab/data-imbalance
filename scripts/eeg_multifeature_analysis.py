@@ -23,16 +23,16 @@ from imbalance import viz
 
 cross_validation = StratifiedGroupKFold(n_splits=5)
 cross_validation_label = "Stratified-Group"
-n_features = 'multi'
-dataset_balance=np.linspace(0.1, 0.9, 25)
-classifiers=[
+n_features = "multi"
+dataset_balance = np.linspace(0.1, 0.9, 25)
+classifiers = [
     "lda",
     "svm",
     LogisticRegression(max_iter=1000),
     RandomForestClassifier(n_estimators=25),
 ]
-n_permutations=100
-n_init=10
+n_permutations = 100
+n_init = 10
 
 ###############################################################################
 # Region of Interest
@@ -40,7 +40,7 @@ n_init=10
 # Any electrode that starts with
 #   P -> Parietal
 #   O -> Occipital
-roi = lambda x: x[0] in ["P", "O"] 
+roi = lambda x: x[0] in ["P", "O"]
 
 ###############################################################################
 #%% Path for results
@@ -54,10 +54,8 @@ features_path = f"data/eeg_features_{n_features}.npy"
 ###############################################################################
 
 if not os.path.isfile(features_path):
-    print('Generating features!')
-    x, y, groups = eegbci(
-        "data", roi = roi, n_features=n_features
-    )
+    print("Generating features!")
+    x, y, groups = eegbci("data", roi=roi, n_features=n_features)
     np.save(features_path, dict(x=x, y=y, groups=groups))
 else:
     # Reuse pre-computed features
@@ -97,17 +95,17 @@ else:
 
 # Feature Distribution
 
-print('Plotting feature distribution')
+print("Plotting feature distribution")
 viz.data_distribution(pl, show=False)
 fig = plt.gcf()
 fig.savefig(pipeline_path.replace(".pickle", f"_dist.png"))
 
 # Balance vs Score Curves for each Classifier
-print('Plotting Balance vs Score Curves')
+print("Plotting Balance vs Score Curves")
 clfs = [key for key, val in viz.CLASSIFIERS.items()]
 for clf in clfs:
     viz.metric_balance(pl, clf, show=False)
     fig = plt.gcf()
     fig.savefig(pipeline_path.replace(".pickle", f"_{clf}.png"))
 
-print('EEG multi-feature test done!')
+print("EEG multi-feature test done!")

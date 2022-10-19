@@ -75,8 +75,8 @@ class Pipeline:
         # check x and y parameters
         x, y = np.asarray(x), np.asarray(y)
         assert x.ndim in [1, 2], f"x must be 1- or 2-dimensional, got {x.ndim}D"
-        assert (
-            y.ndim == 1 and np.issubdtype(y.dtype,np.integer)
+        assert y.ndim == 1 and np.issubdtype(
+            y.dtype, np.integer
         ), f"y must be a 1D integer array, got {y.ndim}D with type {y.dtype}"
         n_classes = len(np.unique(y))
         assert n_classes == 2, (
@@ -105,7 +105,7 @@ class Pipeline:
         # check groups parameter
         if groups is not None:
             groups = np.asarray(groups)
-            assert groups.ndim == 1 and np.issubdtype(groups.dtype,np.integer), (
+            assert groups.ndim == 1 and np.issubdtype(groups.dtype, np.integer), (
                 f"groups must be a 1D integer array, "
                 f"got {groups.ndim}D with type {groups.dtype}"
             )
