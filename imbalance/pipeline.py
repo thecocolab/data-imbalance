@@ -20,7 +20,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
-from mlneurotools.ml import classification
+from imbalance.utils import classification
 
 
 class Pipeline:
