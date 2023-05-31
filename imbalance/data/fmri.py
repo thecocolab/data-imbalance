@@ -9,13 +9,14 @@ from nilearn.input_data import NiftiMasker
 
 
 def fmri_haxby(
-    datapath: str = "data", subject: int = 1
+    datapath: str = "data", subject: int = 1, return_nilearn: bool = False
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Returns the voxel data from the Haxby dataset (subject 2) for face vs house.
 
     Args:
         datapath (str): path where the eeg data files will be downloaded
         subject (int): subject number to load
+        return_nilearn (bool): return the nilearn masker and dataset objects
     Returns:
         X : power features array of shape (samples, channel)
         Y : label array of shape (samples,)
@@ -42,7 +43,10 @@ def fmri_haxby(
     masker = NiftiMasker(mask_img=mask_filename, standardize=True)
     masked_data = masker.fit_transform(func_img)
 
-    return masked_data, np.unique(conditions.values, return_inverse=True)[1]
+    if return_nilearn:
+        return masked_data, np.unique(conditions.values, return_inverse=True)[1], masker, haxby_dataset
+    else:
+        return masked_data, np.unique(conditions.values, return_inverse=True)[1]
 
 
 if __name__ == "__main__":
