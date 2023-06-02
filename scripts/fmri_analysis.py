@@ -1,9 +1,7 @@
 import pickle
-
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold
-
 from imbalance.data import fmri_haxby
 from imbalance.pipeline import Pipeline
 
@@ -11,6 +9,9 @@ pipeline_path = f"data/fmri.pickle"
 cross_validation = StratifiedKFold(n_splits=5)
 classifiers = {
     "lr": LogisticRegression(max_iter=1000),
+    "LDA": "lda",
+    "SVM": "svm",
+    "Random Forest": RandomForestClassifier(n_estimators=25),
 }
 n_permutations = 100
 n_init = 10
