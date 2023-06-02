@@ -7,3 +7,6 @@ jupyter==1.0.0
 pandas==1.4.1
 pooch==1.6.0
 imblearn==0.0
+datashader
+bokeh
+holoviews
